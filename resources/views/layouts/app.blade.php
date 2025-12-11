@@ -48,13 +48,9 @@
                     <span class="text-lg font-bold lg:hidden">Ecoly</span>
                 </div>
                 <div class="flex items-center gap-1">
-                    {{-- Language Switcher --}}
                     <livewire:language-switcher />
-                    
-                    {{-- Theme Toggle --}}
                     <livewire:theme-toggle />
                     
-                    {{-- User Dropdown --}}
                     <div class="dropdown dropdown-end">
                         <label tabindex="0" class="btn btn-ghost gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -88,7 +84,6 @@
         <div class="drawer-side z-40">
             <label for="main-drawer" class="drawer-overlay"></label>
             <aside class="bg-base-100 w-64 min-h-screen flex flex-col">
-                {{-- Logo --}}
                 <div class="flex items-center gap-3 px-4 py-6 border-b border-base-200">
                     <div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
                         <span class="text-white font-bold text-lg">E</span>
@@ -96,7 +91,6 @@
                     <span class="font-bold text-xl">Ecoly</span>
                 </div>
                 
-                {{-- Menu --}}
                 <ul class="menu p-4 flex-1">
                     <li>
                         <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
@@ -111,10 +105,36 @@
                         <li class="menu-title mt-4">
                             <span>{{ __('Configuration') }}</span>
                         </li>
-                        <li><a href="#">{{ __('School') }}</a></li>
-                        <li><a href="#">{{ __('School Years') }}</a></li>
-                        <li><a href="#">{{ __('Classes') }}</a></li>
-                        <li><a href="#">{{ __('Subjects') }}</a></li>
+                        <li>
+                            <a href="{{ route('admin.school-settings') }}" class="{{ request()->routeIs('admin.school-settings') ? 'active' : '' }}">
+                                {{ __('School') }}
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('admin.school-years') }}" class="{{ request()->routeIs('admin.school-years') ? 'active' : '' }}">
+                                {{ __('School Years') }}
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('admin.trimesters') }}" class="{{ request()->routeIs('admin.trimesters') ? 'active' : '' }}">
+                                {{ __('Trimesters') }}
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('admin.classes') }}" class="{{ request()->routeIs('admin.classes') ? 'active' : '' }}">
+                                {{ __('Classes') }}
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('admin.subjects') }}" class="{{ request()->routeIs('admin.subjects') ? 'active' : '' }}">
+                                {{ __('Subjects') }}
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('admin.class-subjects') }}" class="{{ request()->routeIs('admin.class-subjects') ? 'active' : '' }}">
+                                {{ __('Class Subjects') }}
+                            </a>
+                        </li>
                         <li><a href="#">{{ __('Users') }}</a></li>
                     @endif
                     
@@ -135,6 +155,9 @@
             </aside>
         </div>
     </div>
+    
+    {{-- Toast Notifications --}}
+    <livewire:toast />
     
     @livewireScripts
 </body>

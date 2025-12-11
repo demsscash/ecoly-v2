@@ -37,3 +37,8 @@
         text-align: right;
     }
 }
+
+/* Hide Alpine.js elements until loaded */
+[x-cloak] {
+    display: none !important;
+}
