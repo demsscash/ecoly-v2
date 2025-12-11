@@ -27,6 +27,7 @@ class Students extends Component
     public bool $showModal = false;
 
     // Form fields
+    public string $nni = '';
     public string $first_name = '';
     public string $last_name = '';
     public string $first_name_ar = '';
@@ -49,45 +50,13 @@ class Students extends Component
     public string $previous_school = '';
     public string $notes = '';
     public $photo = null;
+    public ?string $existingPhoto = null;
 
     public function mount(): void
     {
         $activeYear = SchoolYear::active();
         $this->selectedYearId = $activeYear?->id ?? SchoolYear::latest()->first()?->id;
-        $this->enrollment_date = now()->format('Y-m-d');
-    }
-
-    protected function rules(): array
-    {
-        return [
-            'first_name' => 'required|string|max:100',
-            'last_name' => 'required|string|max:100',
-            'first_name_ar' => 'nullable|string|max:100',
-            'last_name_ar' => 'nullable|string|max:100',
-            'birth_date' => 'required|date|before:today',
-            'birth_place' => 'nullable|string|max:100',
-            'birth_place_ar' => 'nullable|string|max:100',
-            'gender' => 'required|in:male,female',
-            'nationality' => 'required|string|max:50',
-            'guardian_name' => 'required|string|max:100',
-            'guardian_name_ar' => 'nullable|string|max:100',
-            'guardian_phone' => 'required|string|max:20',
-            'guardian_phone_2' => 'nullable|string|max:20',
-            'guardian_email' => 'nullable|email|max:100',
-            'guardian_profession' => 'nullable|string|max:100',
-            'address' => 'nullable|string|max:500',
-            'address_ar' => 'nullable|string|max:500',
-            'class_id' => 'nullable|exists:classes,id',
-            'enrollment_date' => 'required|date',
-            'previous_school' => 'nullable|string|max:200',
-            'notes' => 'nullable|string|max:1000',
-            'photo' => 'nullable|image|max:2048',
-        ];
-    }
-
-    public function updatingSearch(): void
-    {
-        $this->resetPage();
+        $this->enrollment_date = date('Y-m-d');
     }
 
     public function updatedSelectedYearId(): void
@@ -96,9 +65,33 @@ class Students extends Component
         $this->resetPage();
     }
 
+    public function updatedSelectedClassId(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedStatusFilter(): void
+    {
+        $this->resetPage();
+    }
+
     public function create(): void
     {
-        $this->resetForm();
+        $this->reset([
+            'editingId', 'nni', 'first_name', 'last_name', 'first_name_ar', 'last_name_ar',
+            'birth_date', 'birth_place', 'birth_place_ar', 'gender', 'nationality',
+            'guardian_name', 'guardian_name_ar', 'guardian_phone', 'guardian_phone_2',
+            'guardian_email', 'guardian_profession', 'address', 'address_ar',
+            'class_id', 'previous_school', 'notes', 'photo', 'existingPhoto'
+        ]);
+        $this->enrollment_date = date('Y-m-d');
+        $this->gender = 'male';
+        $this->nationality = 'Mauritanienne';
         $this->showModal = true;
     }
 
@@ -107,6 +100,7 @@ class Students extends Component
         $student = Student::findOrFail($id);
         
         $this->editingId = $student->id;
+        $this->nni = $student->nni ?? '';
         $this->first_name = $student->first_name;
         $this->last_name = $student->last_name;
         $this->first_name_ar = $student->first_name_ar ?? '';
@@ -128,15 +122,36 @@ class Students extends Component
         $this->enrollment_date = $student->enrollment_date->format('Y-m-d');
         $this->previous_school = $student->previous_school ?? '';
         $this->notes = $student->notes ?? '';
+        $this->existingPhoto = $student->photo_path;
+        $this->photo = null;
         
         $this->showModal = true;
     }
 
     public function save(): void
     {
-        $this->validate();
+        $rules = [
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'birth_date' => 'required|date',
+            'gender' => 'required|in:male,female',
+            'guardian_name' => 'required|string|max:255',
+            'guardian_phone' => 'required|string|max:20',
+            'enrollment_date' => 'required|date',
+            'photo' => 'nullable|image|max:2048',
+            'nni' => 'nullable|string|size:10|unique:students,nni' . ($this->editingId ? ',' . $this->editingId : ''),
+        ];
+
+        // Validate NNI format
+        if ($this->nni && !Student::isValidNni($this->nni)) {
+            $this->addError('nni', __('NNI must be exactly 10 digits.'));
+            return;
+        }
+
+        $this->validate($rules);
 
         $data = [
+            'nni' => $this->nni ?: null,
             'first_name' => $this->first_name,
             'last_name' => $this->last_name,
             'first_name_ar' => $this->first_name_ar ?: null,
@@ -183,14 +198,13 @@ class Students extends Component
         }
 
         $this->showModal = false;
-        $this->resetForm();
+        $this->reset(['editingId', 'photo', 'existingPhoto']);
     }
 
     public function updateStatus(int $id, string $status): void
     {
         $student = Student::findOrFail($id);
         $student->update(['status' => $status]);
-        
         $this->dispatch('toast', message: __('Status updated successfully.'), type: 'success');
     }
 
@@ -198,38 +212,23 @@ class Students extends Component
     {
         $student = Student::findOrFail($id);
         
-        if ($student->photo_path) {
-            Storage::disk('public')->delete($student->photo_path);
-        }
-        
+        // Soft delete - photo kept for potential restore
         $student->delete();
+        
         $this->dispatch('toast', message: __('Student deleted successfully.'), type: 'success');
     }
 
-    private function resetForm(): void
+    public function removePhoto(): void
     {
-        $this->editingId = null;
-        $this->first_name = '';
-        $this->last_name = '';
-        $this->first_name_ar = '';
-        $this->last_name_ar = '';
-        $this->birth_date = '';
-        $this->birth_place = '';
-        $this->birth_place_ar = '';
-        $this->gender = 'male';
-        $this->nationality = 'Mauritanienne';
-        $this->guardian_name = '';
-        $this->guardian_name_ar = '';
-        $this->guardian_phone = '';
-        $this->guardian_phone_2 = '';
-        $this->guardian_email = '';
-        $this->guardian_profession = '';
-        $this->address = '';
-        $this->address_ar = '';
-        $this->class_id = null;
-        $this->enrollment_date = now()->format('Y-m-d');
-        $this->previous_school = '';
-        $this->notes = '';
+        if ($this->editingId) {
+            $student = Student::find($this->editingId);
+            if ($student && $student->photo_path) {
+                Storage::disk('public')->delete($student->photo_path);
+                $student->update(['photo_path' => null]);
+                $this->existingPhoto = null;
+                $this->dispatch('toast', message: __('Photo removed.'), type: 'success');
+            }
+        }
         $this->photo = null;
     }
 
@@ -255,6 +254,7 @@ class Students extends Component
                     $q->where('first_name', 'ilike', "%{$this->search}%")
                       ->orWhere('last_name', 'ilike', "%{$this->search}%")
                       ->orWhere('matricule', 'ilike', "%{$this->search}%")
+                      ->orWhere('nni', 'ilike', "%{$this->search}%")
                       ->orWhere('guardian_phone', 'ilike', "%{$this->search}%");
                 });
             })

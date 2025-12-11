@@ -1,17 +1,16 @@
-<div x-data="{ showModal: false, editMode: false }">
+<div
+    x-data="{ 
+        showModal: $wire.entangle('showModal'),
+        editMode: $wire.entangle('editingId')
+    }"
+>
     {{-- Header --}}
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
             <h1 class="text-2xl font-bold">{{ __('Students') }}</h1>
             <p class="text-base-content/60">{{ __('Manage student enrollment') }}</p>
         </div>
-        <button 
-            @click="showModal = true; editMode = false; $wire.create()"
-            class="btn btn-primary"
-        >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
+        <button wire:click="create" class="btn btn-primary">
             {{ __('New Student') }}
         </button>
     </div>
@@ -21,8 +20,7 @@
         <div class="card-body py-4">
             <div class="flex flex-wrap items-center gap-4">
                 <div>
-                    <label class="text-sm font-medium">{{ __('School Year') }}:</label>
-                    <select wire:model.live="selectedYearId" class="select select-bordered select-sm w-40 ml-2">
+                    <select wire:model.live="selectedYearId" class="select select-bordered select-sm w-40">
                         @foreach ($years as $year)
                             <option value="{{ $year->id }}">{{ $year->name }}</option>
                         @endforeach
@@ -30,8 +28,7 @@
                 </div>
                 
                 <div>
-                    <label class="text-sm font-medium">{{ __('Class') }}:</label>
-                    <select wire:model.live="selectedClassId" class="select select-bordered select-sm w-40 ml-2">
+                    <select wire:model.live="selectedClassId" class="select select-bordered select-sm w-40">
                         <option value="">{{ __('All classes') }}</option>
                         @foreach ($classes as $class)
                             <option value="{{ $class->id }}">{{ $class->name }}</option>
@@ -40,8 +37,7 @@
                 </div>
 
                 <div>
-                    <label class="text-sm font-medium">{{ __('Status') }}:</label>
-                    <select wire:model.live="statusFilter" class="select select-bordered select-sm w-36 ml-2">
+                    <select wire:model.live="statusFilter" class="select select-bordered select-sm w-36">
                         <option value="">{{ __('All') }}</option>
                         @foreach ($statuses as $value => $label)
                             <option value="{{ $value }}">{{ $label }}</option>
@@ -49,11 +45,11 @@
                     </select>
                 </div>
 
-                <div class="flex-1 max-w-xs">
+                <div class="flex-1 min-w-48">
                     <input 
-                        type="text"
-                        wire:model.live.debounce.300ms="search"
-                        placeholder="{{ __('Search...') }}"
+                        type="text" 
+                        wire:model.live.debounce.300ms="search" 
+                        placeholder="{{ __('Search...') }}" 
                         class="input input-bordered input-sm w-full"
                     />
                 </div>
@@ -67,7 +63,9 @@
             <table class="table">
                 <thead>
                     <tr>
+                        <th class="w-12"></th>
                         <th>{{ __('Matricule') }}</th>
+                        <th>{{ __('NNI') }}</th>
                         <th>{{ __('Name') }}</th>
                         <th>{{ __('Class') }}</th>
                         <th>{{ __('Guardian') }}</th>
@@ -79,14 +77,24 @@
                 <tbody>
                     @forelse ($students as $student)
                         <tr>
-                            <td class="font-mono">{{ $student->matricule }}</td>
                             <td>
-                                <div class="font-medium">{{ $student->full_name }}</div>
-                                @if ($student->first_name_ar)
-                                    <div class="text-sm text-base-content/60" dir="rtl">{{ $student->full_name_ar }}</div>
-                                @endif
+                                <div class="avatar">
+                                    <div class="w-10 h-10 rounded-full">
+                                        <img src="{{ $student->photo_url }}" alt="{{ $student->full_name }}" />
+                                    </div>
+                                </div>
                             </td>
-                            <td>{{ $student->class?->name ?? '-' }}</td>
+                            <td class="font-mono text-sm">{{ $student->matricule }}</td>
+                            <td class="font-mono text-sm">{{ $student->nni ?? '-' }}</td>
+                            <td>
+                                <a href="{{ route('students.show', $student) }}" class="hover:underline">
+                                    <div class="font-medium">{{ $student->full_name }}</div>
+                                    @if ($student->first_name_ar)
+                                        <div class="text-sm text-base-content/60" dir="rtl">{{ $student->full_name_ar }}</div>
+                                    @endif
+                                </a>
+                            </td>
+                            <td>{{ $student->class?->name ?? __('Not assigned') }}</td>
                             <td>{{ $student->guardian_name }}</td>
                             <td>{{ $student->guardian_phone }}</td>
                             <td>
@@ -95,26 +103,27 @@
                                     class="select select-bordered select-xs w-28"
                                 >
                                     @foreach ($statuses as $value => $label)
-                                        <option value="{{ $value }}" @selected($student->status === $value)>
+                                        <option value="{{ $value }}" {{ $student->status === $value ? 'selected' : '' }}>
                                             {{ $label }}
                                         </option>
                                     @endforeach
                                 </select>
                             </td>
                             <td>
-                                <div class="flex items-center gap-1">
-                                    <button 
-                                        @click="showModal = true; editMode = true; $wire.edit({{ $student->id }})"
-                                        class="btn btn-ghost btn-xs"
-                                        title="{{ __('Edit') }}"
-                                    >
+                                <div class="flex gap-1">
+                                    <a href="{{ route('students.show', $student) }}" class="btn btn-ghost btn-xs" title="{{ __('View') }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.64 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.64 0-8.573-3.007-9.963-7.178Z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                        </svg>
+                                    </a>
+                                    <button wire:click="edit({{ $student->id }})" class="btn btn-ghost btn-xs" title="{{ __('Edit') }}">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
                                         </svg>
                                     </button>
-                                    
                                     <button 
-                                        wire:click="delete({{ $student->id }})"
+                                        wire:click="delete({{ $student->id }})" 
                                         wire:confirm="{{ __('Delete this student?') }}"
                                         class="btn btn-ghost btn-xs text-error"
                                         title="{{ __('Delete') }}"
@@ -128,7 +137,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center py-8 text-base-content/60">
+                            <td colspan="9" class="text-center py-8 text-base-content/60">
                                 {{ __('No students found.') }}
                             </td>
                         </tr>
@@ -166,36 +175,68 @@
                 </h3>
                 
                 <form wire:submit="save" class="space-y-6">
+                    {{-- Photo Section --}}
+                    <div class="flex items-center gap-4">
+                        <div class="avatar">
+                            <div class="w-20 h-20 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+                                @if ($photo)
+                                    <img src="{{ $photo->temporaryUrl() }}" alt="Preview" />
+                                @elseif ($existingPhoto)
+                                    <img src="{{ asset('storage/' . $existingPhoto) }}" alt="Photo" />
+                                @else
+                                    <img src="{{ $gender === 'female' ? asset('images/default-female.svg') : asset('images/default-male.svg') }}" alt="Default" />
+                                @endif
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium mb-1">{{ __('Photo') }}</label>
+                            <input type="file" wire:model="photo" accept="image/*" class="file-input file-input-bordered file-input-sm w-full max-w-xs" />
+                            @if ($existingPhoto || $photo)
+                                <button type="button" wire:click="removePhoto" class="btn btn-ghost btn-xs text-error mt-1">
+                                    {{ __('Remove photo') }}
+                                </button>
+                            @endif
+                            @error('photo') <p class="text-error text-sm mt-1">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+
                     {{-- Student Info --}}
                     <div>
                         <h4 class="font-medium text-sm text-base-content/60 mb-3">{{ __('Student Information') }}</h4>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
+                                <label class="block text-sm font-medium mb-1">{{ __('NNI') }}</label>
+                                <input type="text" wire:model="nni" maxlength="10" placeholder="0000000000" class="input input-bordered w-full input-sm font-mono" />
+                                @error('nni') <p class="text-error text-sm mt-1">{{ $message }}</p> @enderror
+                                <p class="text-xs text-base-content/50 mt-1">{{ __('10 digits, optional') }}</p>
+                            </div>
+                            <div></div>
+                            <div>
                                 <label class="block text-sm font-medium mb-1">{{ __('First Name') }} <span class="text-error">*</span></label>
                                 <input type="text" wire:model="first_name" class="input input-bordered w-full input-sm" />
-                                @error('first_name') <p class="text-error text-xs mt-1">{{ $message }}</p> @enderror
+                                @error('first_name') <p class="text-error text-sm mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-sm font-medium mb-1">{{ __('Last Name') }} <span class="text-error">*</span></label>
                                 <input type="text" wire:model="last_name" class="input input-bordered w-full input-sm" />
-                                @error('last_name') <p class="text-error text-xs mt-1">{{ $message }}</p> @enderror
+                                @error('last_name') <p class="text-error text-sm mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-sm font-medium mb-1">{{ __('First Name') }} (AR)</label>
+                                <label class="block text-sm font-medium mb-1">{{ __('First Name') }} ({{ __('Arabic') }})</label>
                                 <input type="text" wire:model="first_name_ar" dir="rtl" class="input input-bordered w-full input-sm" />
                             </div>
                             <div>
-                                <label class="block text-sm font-medium mb-1">{{ __('Last Name') }} (AR)</label>
+                                <label class="block text-sm font-medium mb-1">{{ __('Last Name') }} ({{ __('Arabic') }})</label>
                                 <input type="text" wire:model="last_name_ar" dir="rtl" class="input input-bordered w-full input-sm" />
                             </div>
                             <div>
                                 <label class="block text-sm font-medium mb-1">{{ __('Birth Date') }} <span class="text-error">*</span></label>
                                 <input type="date" wire:model="birth_date" class="input input-bordered w-full input-sm" />
-                                @error('birth_date') <p class="text-error text-xs mt-1">{{ $message }}</p> @enderror
+                                @error('birth_date') <p class="text-error text-sm mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-sm font-medium mb-1">{{ __('Gender') }} <span class="text-error">*</span></label>
-                                <select wire:model="gender" class="select select-bordered w-full select-sm">
+                                <select wire:model.live="gender" class="select select-bordered w-full select-sm">
                                     <option value="male">{{ __('Male') }}</option>
                                     <option value="female">{{ __('Female') }}</option>
                                 </select>
@@ -203,6 +244,10 @@
                             <div>
                                 <label class="block text-sm font-medium mb-1">{{ __('Birth Place') }}</label>
                                 <input type="text" wire:model="birth_place" class="input input-bordered w-full input-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">{{ __('Birth Place') }} ({{ __('Arabic') }})</label>
+                                <input type="text" wire:model="birth_place_ar" dir="rtl" class="input input-bordered w-full input-sm" />
                             </div>
                             <div>
                                 <label class="block text-sm font-medium mb-1">{{ __('Nationality') }}</label>
@@ -218,20 +263,20 @@
                             <div>
                                 <label class="block text-sm font-medium mb-1">{{ __('Guardian Name') }} <span class="text-error">*</span></label>
                                 <input type="text" wire:model="guardian_name" class="input input-bordered w-full input-sm" />
-                                @error('guardian_name') <p class="text-error text-xs mt-1">{{ $message }}</p> @enderror
+                                @error('guardian_name') <p class="text-error text-sm mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-sm font-medium mb-1">{{ __('Guardian Name') }} (AR)</label>
+                                <label class="block text-sm font-medium mb-1">{{ __('Guardian Name') }} ({{ __('Arabic') }})</label>
                                 <input type="text" wire:model="guardian_name_ar" dir="rtl" class="input input-bordered w-full input-sm" />
                             </div>
                             <div>
                                 <label class="block text-sm font-medium mb-1">{{ __('Phone') }} <span class="text-error">*</span></label>
-                                <input type="text" wire:model="guardian_phone" class="input input-bordered w-full input-sm" />
-                                @error('guardian_phone') <p class="text-error text-xs mt-1">{{ $message }}</p> @enderror
+                                <input type="tel" wire:model="guardian_phone" class="input input-bordered w-full input-sm" />
+                                @error('guardian_phone') <p class="text-error text-sm mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-sm font-medium mb-1">{{ __('Phone 2') }}</label>
-                                <input type="text" wire:model="guardian_phone_2" class="input input-bordered w-full input-sm" />
+                                <input type="tel" wire:model="guardian_phone_2" class="input input-bordered w-full input-sm" />
                             </div>
                             <div>
                                 <label class="block text-sm font-medium mb-1">{{ __('Email') }}</label>
@@ -241,9 +286,13 @@
                                 <label class="block text-sm font-medium mb-1">{{ __('Profession') }}</label>
                                 <input type="text" wire:model="guardian_profession" class="input input-bordered w-full input-sm" />
                             </div>
-                            <div class="md:col-span-2">
+                            <div>
                                 <label class="block text-sm font-medium mb-1">{{ __('Address') }}</label>
                                 <input type="text" wire:model="address" class="input input-bordered w-full input-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">{{ __('Address') }} ({{ __('Arabic') }})</label>
+                                <input type="text" wire:model="address_ar" dir="rtl" class="input input-bordered w-full input-sm" />
                             </div>
                         </div>
                     </div>
@@ -264,6 +313,7 @@
                             <div>
                                 <label class="block text-sm font-medium mb-1">{{ __('Enrollment Date') }} <span class="text-error">*</span></label>
                                 <input type="date" wire:model="enrollment_date" class="input input-bordered w-full input-sm" />
+                                @error('enrollment_date') <p class="text-error text-sm mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div class="md:col-span-2">
                                 <label class="block text-sm font-medium mb-1">{{ __('Previous School') }}</label>
@@ -278,9 +328,9 @@
 
                     <div class="flex justify-end gap-2">
                         <button type="button" @click="showModal = false" class="btn">{{ __('Cancel') }}</button>
-                        <button type="submit" class="btn btn-primary" wire:loading.attr="disabled" @click="showModal = false">
-                            <span wire:loading.remove>{{ __('Save') }}</span>
-                            <span wire:loading class="loading loading-spinner loading-sm"></span>
+                        <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">
+                            <span wire:loading.remove wire:target="save">{{ __('Save') }}</span>
+                            <span wire:loading wire:target="save" class="loading loading-spinner loading-sm"></span>
                         </button>
                     </div>
                 </form>

@@ -4,15 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Student extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'matricule',
+        'nni',
         'first_name',
         'last_name',
         'first_name_ar',
@@ -88,13 +90,34 @@ class Student extends Model
     }
 
     /**
-     * Get photo URL.
+     * Get the grades.
      */
-    public function getPhotoUrlAttribute(): ?string
+    public function grades(): HasMany
     {
-        return $this->photo_path 
-            ? asset('storage/' . $this->photo_path)
-            : null;
+        return $this->hasMany(Grade::class);
+    }
+
+    /**
+     * Get photo URL with default fallback.
+     */
+    public function getPhotoUrlAttribute(): string
+    {
+        if ($this->photo_path) {
+            return asset('storage/' . $this->photo_path);
+        }
+        
+        // Default silhouette based on gender
+        return $this->gender === 'female' 
+            ? asset('images/default-female.svg')
+            : asset('images/default-male.svg');
+    }
+
+    /**
+     * Check if student has custom photo.
+     */
+    public function hasPhoto(): bool
+    {
+        return !empty($this->photo_path);
     }
 
     /**
@@ -105,7 +128,8 @@ class Student extends Model
         $year = SchoolYear::find($schoolYearId);
         $yearPrefix = $year ? substr($year->name, 0, 4) : date('Y');
         
-        $lastStudent = self::where('school_year_id', $schoolYearId)
+        $lastStudent = self::withTrashed()
+            ->where('school_year_id', $schoolYearId)
             ->orderByDesc('id')
             ->first();
         
@@ -114,6 +138,17 @@ class Student extends Model
             : 1;
         
         return $yearPrefix . str_pad($sequence, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Validate NNI format (10 digits).
+     */
+    public static function isValidNni(?string $nni): bool
+    {
+        if (empty($nni)) {
+            return true; // NNI is optional
+        }
+        return preg_match('/^\d{10}$/', $nni) === 1;
     }
 
     /**
