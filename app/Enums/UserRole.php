@@ -4,30 +4,16 @@ namespace App\Enums;
 
 enum UserRole: string
 {
-    case ADMIN = 'admin';
-    case SECRETARY = 'secretary';
-    case TEACHER = 'teacher';
+    case Admin = 'admin';
+    case Secretary = 'secretary';
+    case Teacher = 'teacher';
 
-    /**
-     * Get the display label for the role.
-     */
     public function label(): string
     {
         return match($this) {
-            self::ADMIN => __('Admin'),
-            self::SECRETARY => __('Secretary'),
-            self::TEACHER => __('Teacher'),
+            self::Admin => 'Administrateur',
+            self::Secretary => 'Secrétaire',
+            self::Teacher => 'Professeur',
         };
-    }
-
-    /**
-     * Get all roles as array for select options.
-     */
-    public static function options(): array
-    {
-        return collect(self::cases())->map(fn($role) => [
-            'id' => $role->value,
-            'name' => $role->label(),
-        ])->toArray();
     }
 }

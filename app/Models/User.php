@@ -3,42 +3,31 @@
 namespace App\Models;
 
 use App\Enums\UserRole;
-use App\Traits\HasPermissions;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasPermissions;
+    use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     */
     protected $fillable = [
         'first_name',
         'last_name',
         'email',
+        'phone',
         'password',
         'role',
-        'phone',
         'is_active',
-        'failed_login_attempts',
+        'login_attempts',
         'locked_until',
-        'last_login_at',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     */
     protected function casts(): array
     {
         return [
@@ -46,13 +35,13 @@ class User extends Authenticatable
             'password' => 'hashed',
             'role' => UserRole::class,
             'is_active' => 'boolean',
+            'login_attempts' => 'integer',
             'locked_until' => 'datetime',
-            'last_login_at' => 'datetime',
         ];
     }
 
     /**
-     * Get the user's full name.
+     * Get full name.
      */
     public function getNameAttribute(): string
     {
@@ -64,7 +53,7 @@ class User extends Authenticatable
      */
     public function isAdmin(): bool
     {
-        return $this->role === UserRole::ADMIN;
+        return $this->role === UserRole::Admin;
     }
 
     /**
@@ -72,7 +61,7 @@ class User extends Authenticatable
      */
     public function isSecretary(): bool
     {
-        return $this->role === UserRole::SECRETARY;
+        return $this->role === UserRole::Secretary;
     }
 
     /**
@@ -80,39 +69,76 @@ class User extends Authenticatable
      */
     public function isTeacher(): bool
     {
-        return $this->role === UserRole::TEACHER;
+        return $this->role === UserRole::Teacher;
     }
 
     /**
-     * Check if user account is locked.
+     * Check if user has any of the given roles.
+     */
+    public function hasRole(string|array $roles): bool
+    {
+        $roles = is_array($roles) ? $roles : [$roles];
+        
+        return in_array($this->role->value, $roles);
+    }
+
+    /**
+     * Check if the account is locked.
      */
     public function isLocked(): bool
     {
-        return $this->locked_until !== null && $this->locked_until->isFuture();
-    }
-
-    /**
-     * Increment failed login attempts and lock if threshold reached.
-     */
-    public function incrementFailedAttempts(): void
-    {
-        $this->failed_login_attempts++;
-        
-        if ($this->failed_login_attempts >= 5) {
-            $this->locked_until = now()->addMinutes(15);
+        if (!$this->locked_until) {
+            return false;
         }
-        
-        $this->save();
+
+        if ($this->locked_until->isPast()) {
+            $this->update([
+                'locked_until' => null,
+                'login_attempts' => 0,
+            ]);
+            return false;
+        }
+
+        return true;
     }
 
     /**
-     * Reset failed login attempts on successful login.
+     * Get remaining lock minutes.
      */
-    public function resetFailedAttempts(): void
+    public function lockMinutesRemaining(): int
     {
-        $this->failed_login_attempts = 0;
-        $this->locked_until = null;
-        $this->last_login_at = now();
-        $this->save();
+        if (!$this->locked_until) {
+            return 0;
+        }
+
+        return (int) now()->diffInMinutes($this->locked_until, false);
+    }
+
+    /**
+     * Increment login attempts.
+     */
+    public function incrementLoginAttempts(): void
+    {
+        $attempts = $this->login_attempts + 1;
+
+        $data = ['login_attempts' => $attempts];
+
+        // Lock after 5 failed attempts
+        if ($attempts >= 5) {
+            $data['locked_until'] = now()->addMinutes(15);
+        }
+
+        $this->update($data);
+    }
+
+    /**
+     * Reset login attempts.
+     */
+    public function resetLoginAttempts(): void
+    {
+        $this->update([
+            'login_attempts' => 0,
+            'locked_until' => null,
+        ]);
     }
 }

@@ -24,6 +24,7 @@ class SchoolClass extends Model
         'tuition_fee',
         'registration_fee',
         'is_active',
+        'main_teacher_id',
     ];
 
     protected $casts = [
@@ -66,6 +67,14 @@ class SchoolClass extends Model
     }
 
     /**
+     * Get the main teacher.
+     */
+    public function mainTeacher(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'main_teacher_id');
+    }
+
+    /**
      * Get the students in this class.
      */
     public function students(): HasMany
@@ -81,6 +90,15 @@ class SchoolClass extends Model
         return $this->belongsToMany(Subject::class, 'class_subject', 'class_id', 'subject_id')
             ->withPivot(['teacher_id', 'coefficient'])
             ->withTimestamps();
+    }
+
+    /**
+     * Get teachers assigned to this class via subjects.
+     */
+    public function teachers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'class_subject', 'class_id', 'teacher_id')
+            ->distinct();
     }
 
     /**

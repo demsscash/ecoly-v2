@@ -11,6 +11,11 @@ use App\Livewire\Admin\Classes;
 use App\Livewire\Admin\Subjects;
 use App\Livewire\Admin\ClassSubjects;
 use App\Livewire\Admin\Users;
+use App\Livewire\Admin\TeacherAssignments;
+use App\Livewire\Admin\GradingConfig;
+use App\Livewire\Admin\Students;
+use App\Livewire\Teacher\MyClasses;
+use App\Livewire\Grades\GradeEntry;
 
 // Guest routes
 Route::middleware('guest')->group(function () {
@@ -30,7 +35,22 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/subjects', Subjects::class)->name('admin.subjects');
         Route::get('/admin/class-subjects', ClassSubjects::class)->name('admin.class-subjects');
         Route::get('/admin/users', Users::class)->name('admin.users');
+        Route::get('/admin/teacher-assignments', TeacherAssignments::class)->name('admin.teacher-assignments');
+        Route::get('/admin/grading-config', GradingConfig::class)->name('admin.grading-config');
     });
+    
+    // Admin + Secretary routes
+    Route::middleware('role:admin,secretary')->group(function () {
+        Route::get('/students', Students::class)->name('students');
+    });
+
+    // Teacher routes
+    Route::middleware('role:teacher')->group(function () {
+        Route::get('/my-classes', MyClasses::class)->name('teacher.my-classes');
+    });
+    
+    // All authenticated users (grades)
+    Route::get('/grades', GradeEntry::class)->name('grades');
     
     Route::post('/logout', function () {
         Auth::logout();
@@ -40,7 +60,6 @@ Route::middleware('auth')->group(function () {
     })->name('logout');
 });
 
-// Redirect root to login or dashboard
 Route::get('/', function () {
     return auth()->check() ? redirect('/dashboard') : redirect('/login');
 });

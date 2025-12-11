@@ -2,36 +2,32 @@
 
 namespace App\Livewire\Auth;
 
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\Rule;
 use Livewire\Attributes\Title;
-use Illuminate\Support\Facades\Auth;
-use App\Models\User;
+use Livewire\Attributes\Validate;
 
 #[Layout('layouts.guest')]
 #[Title('Connexion - Ecoly')]
 class Login extends Component
 {
-    #[Rule('required|email')]
+    #[Validate('required|email')]
     public string $email = '';
 
-    #[Rule('required|min:8')]
+    #[Validate('required|min:6')]
     public string $password = '';
 
     public bool $remember = false;
 
-    /**
-     * Handle login attempt.
-     */
-    public function login(): void
+    public function login()
     {
         $this->validate();
 
-        // Find user by email
         $user = User::where('email', $this->email)->first();
 
-        // Check if user exists
         if (!$user) {
             $this->addError('email', __('These credentials do not match our records.'));
             return;
@@ -39,7 +35,7 @@ class Login extends Component
 
         // Check if account is locked
         if ($user->isLocked()) {
-            $minutes = now()->diffInMinutes($user->locked_until);
+            $minutes = $user->lockMinutesRemaining();
             $this->addError('email', __('Account locked. Try again in :minutes minutes.', ['minutes' => $minutes]));
             return;
         }
@@ -50,20 +46,23 @@ class Login extends Component
             return;
         }
 
-        // Attempt authentication
-        if (Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
-            $user->resetFailedAttempts();
-            session()->regenerate();
-            $this->redirect('/dashboard', navigate: true);
-        } else {
-            $user->incrementFailedAttempts();
+        // Verify password
+        if (!Hash::check($this->password, $user->password)) {
+            $user->incrementLoginAttempts();
             $this->addError('email', __('These credentials do not match our records.'));
+            return;
         }
+
+        // Success - reset attempts and login
+        $user->resetLoginAttempts();
+        
+        Auth::login($user, $this->remember);
+        
+        session()->regenerate();
+
+        return redirect()->intended('/dashboard');
     }
 
-    /**
-     * Render the component.
-     */
     public function render()
     {
         return view('livewire.auth.login');

@@ -56,7 +56,7 @@
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
                             </svg>
-                            <span class="hidden md:inline text-sm">{{ auth()->user()->name }}</span>
+                            <span class="hidden md:inline text-sm">{{ auth()->user()->first_name }} {{ auth()->user()->last_name }}</span>
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
                             </svg>
@@ -101,6 +101,7 @@
                         </a>
                     </li>
                     
+                    {{-- Admin Configuration --}}
                     @if(auth()->user()->isAdmin())
                         <li class="menu-title mt-4">
                             <span>{{ __('Configuration') }}</span>
@@ -140,20 +141,52 @@
                                 {{ __('Users') }}
                             </a>
                         </li>
+                        <li>
+                            <a href="{{ route('admin.teacher-assignments') }}" class="{{ request()->routeIs('admin.teacher-assignments') ? 'active' : '' }}">
+                                {{ __('Assignments') }}
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('admin.grading-config') }}" class="{{ request()->routeIs('admin.grading-config') ? 'active' : '' }}">
+                                {{ __('Grading Config') }}
+                            </a>
+                        </li>
                     @endif
                     
+                    {{-- Admin + Secretary Management --}}
                     @if(auth()->user()->isAdmin() || auth()->user()->isSecretary())
                         <li class="menu-title mt-4">
                             <span>{{ __('Management') }}</span>
                         </li>
-                        <li><a href="#">{{ __('Students') }}</a></li>
+                        <li>
+                            <a href="{{ route('students') }}" class="{{ request()->routeIs('students') ? 'active' : '' }}">
+                                {{ __('Students') }}
+                            </a>
+                        </li>
                         <li><a href="#">{{ __('Finances') }}</a></li>
                     @endif
                     
+                    {{-- Teacher Section --}}
+                    @if(auth()->user()->isTeacher())
+                        <li class="menu-title mt-4">
+                            <span>{{ __('Teaching') }}</span>
+                        </li>
+                        <li>
+                            <a href="{{ route('teacher.my-classes') }}" class="{{ request()->routeIs('teacher.my-classes') ? 'active' : '' }}">
+                                {{ __('My Classes') }}
+                            </a>
+                        </li>
+                    @endif
+                    
+                    {{-- Academic Section (All users) --}}
                     <li class="menu-title mt-4">
                         <span>{{ __('Academic') }}</span>
                     </li>
-                    <li><a href="#">{{ __('Grades') }}</a></li>
+                    <li>
+                        <a href="{{ route('grades') }}" class="{{ request()->routeIs('grades') ? 'active' : '' }}">
+                            {{ __('Grades') }}
+                        </a>
+                    </li>
                     <li><a href="#">{{ __('Report Cards') }}</a></li>
                 </ul>
             </aside>
