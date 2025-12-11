@@ -135,7 +135,11 @@
                                 {{ __('Class Subjects') }}
                             </a>
                         </li>
-                        <li><a href="#">{{ __('Users') }}</a></li>
+                        <li>
+                            <a href="{{ route('admin.users') }}" class="{{ request()->routeIs('admin.users') ? 'active' : '' }}">
+                                {{ __('Users') }}
+                            </a>
+                        </li>
                     @endif
                     
                     @if(auth()->user()->isAdmin() || auth()->user()->isSecretary())

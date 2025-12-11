@@ -10,6 +10,7 @@ use App\Livewire\Admin\Trimesters;
 use App\Livewire\Admin\Classes;
 use App\Livewire\Admin\Subjects;
 use App\Livewire\Admin\ClassSubjects;
+use App\Livewire\Admin\Users;
 
 // Guest routes
 Route::middleware('guest')->group(function () {
@@ -28,6 +29,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/classes', Classes::class)->name('admin.classes');
         Route::get('/admin/subjects', Subjects::class)->name('admin.subjects');
         Route::get('/admin/class-subjects', ClassSubjects::class)->name('admin.class-subjects');
+        Route::get('/admin/users', Users::class)->name('admin.users');
     });
     
     Route::post('/logout', function () {
