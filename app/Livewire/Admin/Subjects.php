@@ -6,50 +6,52 @@ use App\Models\Subject;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
+use Livewire\WithPagination;
 
 #[Layout('layouts.app')]
 #[Title('Matières - Ecoly')]
 class Subjects extends Component
 {
+    use WithPagination;
+
+    public bool $showModal = false;
     public ?int $editingId = null;
-    
+    public string $search = '';
+
+    public string $code = '';
     public string $name_fr = '';
     public string $name_ar = '';
-    public string $code = '';
-    public string $coefficient = '1';
-    
-    public bool $showModal = false;
+    public bool $is_active = true;
 
     protected function rules(): array
     {
-        $uniqueRule = $this->editingId 
-            ? "unique:subjects,code,{$this->editingId}"
-            : 'unique:subjects,code';
-
         return [
-            'name_fr' => 'required|string|max:100',
-            'name_ar' => 'required|string|max:100',
-            'code' => ['required', 'string', 'max:10', 'alpha_num', $uniqueRule],
-            'coefficient' => 'required|numeric|min:0.5|max:10',
+            'code' => 'required|string|max:10|unique:subjects,code,' . $this->editingId,
+            'name_fr' => 'required|string|max:255',
+            'name_ar' => 'nullable|string|max:255',
+            'is_active' => 'boolean',
         ];
+    }
+
+    public function updatedSearch(): void
+    {
+        $this->resetPage();
     }
 
     public function create(): void
     {
-        $this->resetForm();
+        $this->reset(['editingId', 'code', 'name_fr', 'name_ar', 'is_active']);
+        $this->is_active = true;
         $this->showModal = true;
     }
 
-    public function edit(int $id): void
+    public function edit(Subject $subject): void
     {
-        $subject = Subject::findOrFail($id);
-        
         $this->editingId = $subject->id;
-        $this->name_fr = $subject->name_fr;
-        $this->name_ar = $subject->name_ar;
         $this->code = $subject->code;
-        $this->coefficient = (string) $subject->coefficient;
-        
+        $this->name_fr = $subject->name_fr;
+        $this->name_ar = $subject->name_ar ?? '';
+        $this->is_active = $subject->is_active;
         $this->showModal = true;
     }
 
@@ -57,64 +59,41 @@ class Subjects extends Component
     {
         $this->validate();
 
-        $data = [
-            'name_fr' => $this->name_fr,
-            'name_ar' => $this->name_ar,
-            'code' => strtoupper($this->code),
-            'coefficient' => $this->coefficient,
-        ];
-
-        if ($this->editingId) {
-            $subject = Subject::findOrFail($this->editingId);
-            $subject->update($data);
-            $this->dispatch('toast', message: __('Subject updated successfully.'), type: 'success');
-        } else {
-            Subject::create($data);
-            $this->dispatch('toast', message: __('Subject created successfully.'), type: 'success');
-        }
+        Subject::updateOrCreate(
+            ['id' => $this->editingId],
+            [
+                'code' => strtoupper($this->code),
+                'name_fr' => $this->name_fr,
+                'name_ar' => $this->name_ar ?: null,
+                'is_active' => $this->is_active,
+            ]
+        );
 
         $this->showModal = false;
-        $this->resetForm();
+        $this->dispatch('toast', message: $this->editingId ? __('Subject updated successfully.') : __('Subject created successfully.'), type: 'success');
     }
 
-    public function toggleActive(int $id): void
+    public function delete(Subject $subject): void
     {
-        $subject = Subject::findOrFail($id);
-        $subject->update(['is_active' => !$subject->is_active]);
-        
-        $message = $subject->is_active 
-            ? __('Subject activated successfully.') 
-            : __('Subject deactivated successfully.');
-            
-        $this->dispatch('toast', message: $message, type: 'success');
-    }
-
-    public function delete(int $id): void
-    {
-        $subject = Subject::findOrFail($id);
-        
-        // Check if assigned to classes
-        if ($subject->classes()->exists()) {
-            $this->dispatch('toast', message: __('Cannot delete subject assigned to classes.'), type: 'error');
+        if ($subject->grades()->exists()) {
+            $this->dispatch('toast', message: __('Cannot delete subject with existing grades.'), type: 'error');
             return;
         }
-        
+
         $subject->delete();
         $this->dispatch('toast', message: __('Subject deleted successfully.'), type: 'success');
     }
 
-    private function resetForm(): void
-    {
-        $this->editingId = null;
-        $this->name_fr = '';
-        $this->name_ar = '';
-        $this->code = '';
-        $this->coefficient = '1';
-    }
-
     public function render()
     {
-        $subjects = Subject::orderBy('name_fr')->get();
+        $subjects = Subject::query()
+            ->when($this->search, function ($q) {
+                $q->where('name_fr', 'ilike', '%' . $this->search . '%')
+                    ->orWhere('name_ar', 'ilike', '%' . $this->search . '%')
+                    ->orWhere('code', 'ilike', '%' . $this->search . '%');
+            })
+            ->orderBy('name_fr')
+            ->paginate(15);
 
         return view('livewire.admin.subjects', [
             'subjects' => $subjects,

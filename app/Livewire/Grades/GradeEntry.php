@@ -3,12 +3,12 @@
 namespace App\Livewire\Grades;
 
 use App\Models\Grade;
+use App\Models\GradingConfig;
 use App\Models\SchoolClass;
 use App\Models\SchoolYear;
 use App\Models\Student;
 use App\Models\Subject;
 use App\Models\Trimester;
-use App\Models\GradingConfig;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -17,67 +17,61 @@ use Livewire\Attributes\Title;
 #[Title('Saisie des notes - Ecoly')]
 class GradeEntry extends Component
 {
-    public ?int $selectedYearId = null;
     public ?int $selectedClassId = null;
     public ?int $selectedSubjectId = null;
     public ?int $selectedTrimesterId = null;
     
     public array $grades = [];
-    public float $controlWeight = 40;
-    public float $examWeight = 60;
-
-    public function mount(): void
-    {
-        $activeYear = SchoolYear::active();
-        $this->selectedYearId = $activeYear?->id ?? SchoolYear::latest()->first()?->id;
-        $this->loadGradingConfig();
-    }
-
-    private function loadGradingConfig(): void
-    {
-        if (!$this->selectedYearId) {
-            return;
-        }
-
-        $config = GradingConfig::where('school_year_id', $this->selectedYearId)->first();
-        if ($config) {
-            $this->controlWeight = $config->control_weight;
-            $this->examWeight = $config->exam_weight;
-        }
-    }
-
-    public function updatedSelectedYearId(): void
-    {
-        $this->reset(['selectedClassId', 'selectedSubjectId', 'selectedTrimesterId', 'grades']);
-        $this->loadGradingConfig();
-    }
+    public bool $isFinalized = false;
+    public ?int $subjectGradeBase = null;
 
     public function updatedSelectedClassId(): void
     {
-        $this->reset(['selectedSubjectId', 'grades']);
+        $this->selectedSubjectId = null;
+        $this->grades = [];
+        $this->subjectGradeBase = null;
+        $this->loadGrades();
     }
 
     public function updatedSelectedSubjectId(): void
     {
-        $this->reset(['grades']);
+        $this->loadSubjectGradeBase();
         $this->loadGrades();
     }
 
     public function updatedSelectedTrimesterId(): void
     {
-        $this->reset(['grades']);
+        $this->checkTrimesterStatus();
         $this->loadGrades();
     }
 
-    private function loadGrades(): void
+    protected function checkTrimesterStatus(): void
     {
-        if (!$this->selectedClassId || !$this->selectedSubjectId || !$this->selectedTrimesterId) {
+        if ($this->selectedTrimesterId) {
+            $trimester = Trimester::find($this->selectedTrimesterId);
+            $this->isFinalized = $trimester?->status === 'finalized';
+        }
+    }
+
+    protected function loadSubjectGradeBase(): void
+    {
+        if (!$this->selectedClassId || !$this->selectedSubjectId) {
+            $this->subjectGradeBase = null;
             return;
         }
 
-        $trimester = Trimester::find($this->selectedTrimesterId);
-        if (!$trimester || $trimester->status === 'finalized') {
-            $this->dispatch('toast', message: __('This trimester is finalized. Grades cannot be modified.'), type: 'warning');
+        $class = SchoolClass::find($this->selectedClassId);
+        $pivot = $class?->subjects()->where('subjects.id', $this->selectedSubjectId)->first()?->pivot;
+        
+        // Use pivot grade_base if exists, otherwise class grade_base, default 20
+        $this->subjectGradeBase = $pivot?->grade_base ?? $class?->grade_base ?? 20;
+    }
+
+    protected function loadGrades(): void
+    {
+        if (!$this->selectedClassId || !$this->selectedSubjectId || !$this->selectedTrimesterId) {
+            $this->grades = [];
+            return;
         }
 
         $students = Student::where('class_id', $this->selectedClassId)
@@ -86,83 +80,125 @@ class GradeEntry extends Component
             ->orderBy('first_name')
             ->get();
 
-        $existingGrades = Grade::where('class_id', $this->selectedClassId)
-            ->where('subject_id', $this->selectedSubjectId)
-            ->where('trimester_id', $this->selectedTrimesterId)
-            ->get()
-            ->keyBy('student_id');
-
         $this->grades = [];
+
         foreach ($students as $student) {
-            $grade = $existingGrades->get($student->id);
+            $grade = Grade::where('student_id', $student->id)
+                ->where('subject_id', $this->selectedSubjectId)
+                ->where('trimester_id', $this->selectedTrimesterId)
+                ->first();
+
             $this->grades[$student->id] = [
                 'student_name' => $student->full_name,
                 'control_grade' => $grade?->control_grade ?? '',
                 'exam_grade' => $grade?->exam_grade ?? '',
-                'average' => $grade?->average ?? '',
+                'average' => $grade?->average,
                 'appreciation' => $grade?->appreciation ?? '',
             ];
         }
     }
 
+    /**
+     * Generate automatic appreciation based on grade and grade base
+     */
+    protected function getAutoAppreciation(?float $average, int $gradeBase = 20): string
+    {
+        if ($average === null) return '';
+
+        // Normalize to 20 scale for threshold comparison
+        $normalized = ($average / $gradeBase) * 20;
+
+        $config = GradingConfig::instance();
+
+        if ($normalized >= $config->excellent_threshold) return 'Excellent';
+        if ($normalized >= $config->very_good_threshold) return 'Très Bien';
+        if ($normalized >= $config->good_threshold) return 'Bien';
+        if ($normalized >= $config->fairly_good_threshold) return 'Assez Bien';
+        if ($normalized >= $config->pass_threshold) return 'Passable';
+        
+        return 'Insuffisant';
+    }
+
+    /**
+     * Calculate average and appreciation when grade changes
+     */
     public function calculateAverage(int $studentId): void
     {
+        if ($this->isFinalized) return;
+
         $control = $this->grades[$studentId]['control_grade'];
         $exam = $this->grades[$studentId]['exam_grade'];
+        $gradeBase = $this->subjectGradeBase ?? 20;
 
-        $control = $control !== '' ? (float) $control : null;
-        $exam = $exam !== '' ? (float) $exam : null;
-
-        if ($control === null && $exam === null) {
-            $this->grades[$studentId]['average'] = '';
+        if ($control === '' && $exam === '') {
+            $this->grades[$studentId]['average'] = null;
+            $this->grades[$studentId]['appreciation'] = '';
             return;
         }
 
-        $totalWeight = 0;
-        $weightedSum = 0;
+        $config = GradingConfig::instance();
+        $controlWeight = $config->control_weight / 100;
+        $examWeight = $config->exam_weight / 100;
 
-        if ($control !== null) {
-            $weightedSum += $control * $this->controlWeight;
-            $totalWeight += $this->controlWeight;
+        $controlVal = $control !== '' ? (float) $control : null;
+        $examVal = $exam !== '' ? (float) $exam : null;
+
+        if ($controlVal !== null && $examVal !== null) {
+            $average = ($controlVal * $controlWeight) + ($examVal * $examWeight);
+        } elseif ($controlVal !== null) {
+            $average = $controlVal;
+        } elseif ($examVal !== null) {
+            $average = $examVal;
+        } else {
+            $average = null;
         }
 
-        if ($exam !== null) {
-            $weightedSum += $exam * $this->examWeight;
-            $totalWeight += $this->examWeight;
-        }
-
-        $average = $totalWeight > 0 ? round($weightedSum / $totalWeight, 2) : '';
-        $this->grades[$studentId]['average'] = $average;
+        $this->grades[$studentId]['average'] = $average !== null ? round($average, 2) : null;
+        
+        // Always update appreciation dynamically
+        $this->grades[$studentId]['appreciation'] = $this->getAutoAppreciation(
+            $this->grades[$studentId]['average'],
+            $gradeBase
+        );
     }
 
     public function save(): void
     {
-        if (!$this->selectedClassId || !$this->selectedSubjectId || !$this->selectedTrimesterId) {
-            return;
-        }
-
-        $trimester = Trimester::find($this->selectedTrimesterId);
-        if (!$trimester || $trimester->status === 'finalized') {
+        if ($this->isFinalized) {
             $this->dispatch('toast', message: __('This trimester is finalized. Grades cannot be modified.'), type: 'error');
             return;
         }
 
-        $class = SchoolClass::find($this->selectedClassId);
-        $maxGrade = $class?->grade_base ?? 20;
+        $gradeBase = $this->subjectGradeBase ?? 20;
 
-        foreach ($this->grades as $studentId => $gradeData) {
-            $control = $gradeData['control_grade'] !== '' ? (float) $gradeData['control_grade'] : null;
-            $exam = $gradeData['exam_grade'] !== '' ? (float) $gradeData['exam_grade'] : null;
-            $average = $gradeData['average'] !== '' ? (float) $gradeData['average'] : null;
-            $appreciation = $gradeData['appreciation'] ?: null;
-
-            if ($control !== null && ($control < 0 || $control > $maxGrade)) {
-                $this->dispatch('toast', message: __('Invalid grade for :name. Must be between 0 and :max.', ['name' => $gradeData['student_name'], 'max' => $maxGrade]), type: 'error');
+        foreach ($this->grades as $studentId => $data) {
+            // Validate grades against subject grade base
+            if ($data['control_grade'] !== '' && ($data['control_grade'] < 0 || $data['control_grade'] > $gradeBase)) {
+                $this->dispatch('toast', message: __('Invalid grade for :name. Must be between 0 and :max.', [
+                    'name' => $data['student_name'],
+                    'max' => $gradeBase
+                ]), type: 'error');
                 return;
             }
-            if ($exam !== null && ($exam < 0 || $exam > $maxGrade)) {
-                $this->dispatch('toast', message: __('Invalid grade for :name. Must be between 0 and :max.', ['name' => $gradeData['student_name'], 'max' => $maxGrade]), type: 'error');
+            if ($data['exam_grade'] !== '' && ($data['exam_grade'] < 0 || $data['exam_grade'] > $gradeBase)) {
+                $this->dispatch('toast', message: __('Invalid grade for :name. Must be between 0 and :max.', [
+                    'name' => $data['student_name'],
+                    'max' => $gradeBase
+                ]), type: 'error');
                 return;
+            }
+        }
+
+        foreach ($this->grades as $studentId => $data) {
+            $controlGrade = $data['control_grade'] !== '' ? (float) $data['control_grade'] : null;
+            $examGrade = $data['exam_grade'] !== '' ? (float) $data['exam_grade'] : null;
+
+            if ($controlGrade === null && $examGrade === null) {
+                Grade::where('student_id', $studentId)
+                    ->where('subject_id', $this->selectedSubjectId)
+                    ->where('trimester_id', $this->selectedTrimesterId)
+                    ->delete();
+                continue;
             }
 
             Grade::updateOrCreate(
@@ -173,10 +209,10 @@ class GradeEntry extends Component
                 ],
                 [
                     'class_id' => $this->selectedClassId,
-                    'control_grade' => $control,
-                    'exam_grade' => $exam,
-                    'average' => $average,
-                    'appreciation' => $appreciation,
+                    'control_grade' => $controlGrade,
+                    'exam_grade' => $examGrade,
+                    'average' => $data['average'],
+                    'appreciation' => $data['appreciation'] ?: $this->getAutoAppreciation($data['average'], $gradeBase),
                     'entered_by' => auth()->id(),
                     'entered_at' => now(),
                 ]
@@ -188,59 +224,72 @@ class GradeEntry extends Component
 
     public function render()
     {
-        $years = SchoolYear::orderByDesc('start_date')->get();
+        $user = auth()->user();
+        $schoolYear = SchoolYear::where('is_active', true)->first();
 
-        $classes = collect();
-        $subjects = collect();
-        $trimesters = collect();
-
-        if ($this->selectedYearId) {
-            $user = auth()->user();
-            $classQuery = SchoolClass::forYear($this->selectedYearId)->active();
-            
-            if ($user->isTeacher()) {
-                $classIds = \DB::table('class_subject')
-                    ->where('teacher_id', $user->id)
-                    ->pluck('class_id')
-                    ->unique();
-                $classQuery->whereIn('id', $classIds);
-            }
-            
-            $classes = $classQuery->orderBy('level')->orderBy('section')->get();
-
-            $trimesters = Trimester::where('school_year_id', $this->selectedYearId)
-                ->orderBy('start_date')
+        // Get classes based on role
+        if ($user->isAdmin() || $user->isSecretary()) {
+            $classes = SchoolClass::when($schoolYear, fn($q) => $q->where('school_year_id', $schoolYear->id))
+                ->where('is_active', true)
+                ->orderBy('level')
+                ->orderBy('name')
+                ->get();
+        } else {
+            // Teacher: only assigned classes
+            $classes = SchoolClass::when($schoolYear, fn($q) => $q->where('school_year_id', $schoolYear->id))
+                ->where('is_active', true)
+                ->whereHas('subjects', function ($q) use ($user) {
+                    $q->where('class_subject.teacher_id', $user->id);
+                })
+                ->orderBy('level')
+                ->orderBy('name')
                 ->get();
         }
 
+        // Get subjects for selected class with grade_base
+        $subjects = collect();
         if ($this->selectedClassId) {
-            $user = auth()->user();
-            $subjectQuery = Subject::whereHas('classes', function ($q) {
-                $q->where('class_id', $this->selectedClassId);
+            $subjectsQuery = Subject::whereHas('classes', function ($q) {
+                $q->where('classes.id', $this->selectedClassId);
             });
 
-            if ($user->isTeacher()) {
-                $subjectIds = \DB::table('class_subject')
-                    ->where('class_id', $this->selectedClassId)
-                    ->where('teacher_id', $user->id)
-                    ->pluck('subject_id');
-                $subjectQuery->whereIn('id', $subjectIds);
+            // Filter by teacher if not admin
+            if (!$user->isAdmin() && !$user->isSecretary()) {
+                $subjectsQuery->whereHas('classes', function ($q) use ($user) {
+                    $q->where('classes.id', $this->selectedClassId)
+                        ->where('class_subject.teacher_id', $user->id);
+                });
             }
 
-            $subjects = $subjectQuery->orderBy('name_fr')->get();
+            $subjects = $subjectsQuery->orderBy('name_fr')->get();
+            
+            // Attach grade_base from pivot
+            $class = SchoolClass::find($this->selectedClassId);
+            foreach ($subjects as $subject) {
+                $pivot = $class->subjects()->where('subjects.id', $subject->id)->first()?->pivot;
+                $subject->grade_base_display = $pivot?->grade_base ?? $class->grade_base ?? 20;
+            }
+        }
+
+        // Get trimesters
+        $trimesters = Trimester::when($schoolYear, fn($q) => $q->where('school_year_id', $schoolYear->id))
+            ->orderBy('start_date')
+            ->get();
+
+        // Select first open trimester by default
+        if (!$this->selectedTrimesterId && $trimesters->isNotEmpty()) {
+            $openTrimester = $trimesters->firstWhere('status', 'open');
+            $this->selectedTrimesterId = $openTrimester?->id ?? $trimesters->first()->id;
+            $this->checkTrimesterStatus();
         }
 
         $selectedClass = $this->selectedClassId ? SchoolClass::find($this->selectedClassId) : null;
-        $selectedTrimester = $this->selectedTrimesterId ? Trimester::find($this->selectedTrimesterId) : null;
 
         return view('livewire.grades.grade-entry', [
-            'years' => $years,
             'classes' => $classes,
             'subjects' => $subjects,
             'trimesters' => $trimesters,
             'selectedClass' => $selectedClass,
-            'selectedTrimester' => $selectedTrimester,
-            'canEdit' => $selectedTrimester && $selectedTrimester->status !== 'finalized',
         ]);
     }
 }

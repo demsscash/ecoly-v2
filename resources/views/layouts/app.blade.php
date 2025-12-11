@@ -187,7 +187,16 @@
                             {{ __('Grades') }}
                         </a>
                     </li>
-                    <li><a href="#">{{ __('Report Cards') }}</a></li>
+                    <li>
+                        <a href="{{ route('class-grades') }}" class="{{ request()->routeIs('class-grades') ? 'active' : '' }}">
+                            {{ __('Class Grades') }}
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('bulletins') }}" class="{{ request()->routeIs('bulletins') ? 'active' : '' }}">
+                            {{ __('Bulletins') }}
+                        </a>
+                    </li>
                 </ul>
             </aside>
         </div>

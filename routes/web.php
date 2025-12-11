@@ -15,6 +15,7 @@ use App\Livewire\Admin\TeacherAssignments;
 use App\Livewire\Admin\GradingConfig;
 use App\Livewire\Admin\Students;
 use App\Livewire\Admin\StudentShow;
+use App\Livewire\Admin\ClassGrades;
 use App\Livewire\Teacher\MyClasses;
 use App\Livewire\Grades\GradeEntry;
 
@@ -44,6 +45,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin,secretary')->group(function () {
         Route::get('/students', Students::class)->name('students');
         Route::get('/students/{student}', StudentShow::class)->name('students.show');
+        Route::get('/class-grades', ClassGrades::class)->name('class-grades');
     });
 
     // Teacher routes
@@ -65,3 +67,8 @@ Route::middleware('auth')->group(function () {
 Route::get('/', function () {
     return auth()->check() ? redirect('/dashboard') : redirect('/login');
 });
+
+// Bulletins
+Route::get('/bulletins', App\Livewire\Admin\Bulletins::class)
+    ->middleware(['auth', 'role:admin,secretary'])
+    ->name('bulletins');

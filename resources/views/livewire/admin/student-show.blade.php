@@ -3,27 +3,21 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div class="flex items-center gap-4">
             <a href="{{ route('students') }}" class="btn btn-ghost btn-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
             </a>
             <div>
                 <h1 class="text-2xl font-bold">{{ __('Student Profile') }}</h1>
                 <p class="text-base-content/60">{{ $student->matricule }}</p>
             </div>
         </div>
-        <div class="flex gap-2">
-            <button wire:click="downloadAttestation" class="btn btn-primary btn-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12 3 3m0 0 3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                </svg>
-                {{ __('Certificate of Enrollment') }}
-            </button>
-        </div>
+        <button wire:click="downloadAttestation" class="btn btn-primary btn-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12 3 3m0 0 3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
+            {{ __('Certificate of Enrollment') }}
+        </button>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {{-- Left Column: Student Info --}}
+        {{-- Left Column --}}
         <div class="lg:col-span-1 space-y-6">
             {{-- Photo & Basic Info --}}
             <div class="card bg-base-100 shadow">
@@ -85,16 +79,6 @@
                             <span class="text-base-content/60">{{ __('Nationality') }}</span>
                             <span>{{ $student->nationality }}</span>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-base-content/60">{{ __('Enrollment Date') }}</span>
-                            <span>{{ $student->enrollment_date->format('d/m/Y') }}</span>
-                        </div>
-                        @if ($student->previous_school)
-                            <div class="flex justify-between">
-                                <span class="text-base-content/60">{{ __('Previous School') }}</span>
-                                <span>{{ $student->previous_school }}</span>
-                            </div>
-                        @endif
                     </div>
                 </div>
             </div>
@@ -108,38 +92,14 @@
                             <span class="text-base-content/60">{{ __('Name') }}</span>
                             <span>{{ $student->guardian_name }}</span>
                         </div>
-                        @if ($student->guardian_name_ar)
-                            <div class="flex justify-between">
-                                <span class="text-base-content/60">{{ __('Name') }} (AR)</span>
-                                <span dir="rtl">{{ $student->guardian_name_ar }}</span>
-                            </div>
-                        @endif
                         <div class="flex justify-between">
                             <span class="text-base-content/60">{{ __('Phone') }}</span>
                             <a href="tel:{{ $student->guardian_phone }}" class="link link-primary">{{ $student->guardian_phone }}</a>
                         </div>
-                        @if ($student->guardian_phone_2)
-                            <div class="flex justify-between">
-                                <span class="text-base-content/60">{{ __('Phone 2') }}</span>
-                                <a href="tel:{{ $student->guardian_phone_2 }}" class="link link-primary">{{ $student->guardian_phone_2 }}</a>
-                            </div>
-                        @endif
                         @if ($student->guardian_email)
                             <div class="flex justify-between">
                                 <span class="text-base-content/60">{{ __('Email') }}</span>
-                                <a href="mailto:{{ $student->guardian_email }}" class="link link-primary">{{ $student->guardian_email }}</a>
-                            </div>
-                        @endif
-                        @if ($student->guardian_profession)
-                            <div class="flex justify-between">
-                                <span class="text-base-content/60">{{ __('Profession') }}</span>
-                                <span>{{ $student->guardian_profession }}</span>
-                            </div>
-                        @endif
-                        @if ($student->address)
-                            <div>
-                                <span class="text-base-content/60 block mb-1">{{ __('Address') }}</span>
-                                <span>{{ $student->address }}</span>
+                                <a href="mailto:{{ $student->guardian_email }}" class="link link-primary text-xs">{{ $student->guardian_email }}</a>
                             </div>
                         @endif
                     </div>
@@ -147,8 +107,40 @@
             </div>
         </div>
 
-        {{-- Right Column: Grades --}}
+        {{-- Right Column --}}
         <div class="lg:col-span-2 space-y-6">
+            {{-- Annual Summary --}}
+            <div class="card bg-gradient-to-r from-primary/10 to-secondary/10 shadow">
+                <div class="card-body">
+                    <h3 class="card-title text-base">{{ __('Annual Summary') }}</h3>
+                    <div class="flex flex-row w-full overflow-hidden">
+                        @foreach($trimesterAverages as $trimId => $data)
+                            <div class="flex-1 text-center p-3 {{ !$loop->last ? 'border-r border-base-300' : '' }}">
+                                <div class="text-xs text-base-content/60 mb-1">{{ $data['name'] }}</div>
+                                <div class="text-xl font-bold {{ $data['average'] !== null ? ($data['average'] >= 10 ? 'text-success' : 'text-error') : 'text-base-content/30' }}">
+                                    {{ $data['average'] ?? '-' }}
+                                </div>
+                                @if($data['rank']['rank'])
+                                    <div class="text-xs text-base-content/60">{{ $data['rank']['rank'] }}/{{ $data['rank']['total'] }}</div>
+                                @endif
+                            </div>
+                        @endforeach
+                        <div class="flex-1 text-center p-3 bg-primary/10 rounded-lg">
+                            <div class="text-xs text-base-content/60 mb-1">{{ __('Annual') }}</div>
+                            <div class="text-xl font-bold {{ $annualAverage !== null ? ($annualAverage >= 10 ? 'text-success' : 'text-error') : 'text-base-content/30' }}">
+                                {{ $annualAverage ?? '-' }}
+                            </div>
+                            @if($annualRank['rank'])
+                                <div class="text-xs text-base-content/60">{{ $annualRank['rank'] }}/{{ $annualRank['total'] }}</div>
+                            @endif
+                            @if($annualMention)
+                                <div class="badge badge-sm mt-1 {{ $annualAverage >= 10 ? 'badge-success' : 'badge-warning' }}">{{ $annualMention }}</div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {{-- Trimester Selector --}}
             <div class="card bg-base-100 shadow">
                 <div class="card-body py-4">
@@ -162,6 +154,35 @@
                     </div>
                 </div>
             </div>
+
+            {{-- Trimester Stats --}}
+            @if($trimesterAverage !== null)
+                <div class="flex flex-row w-full bg-base-100 shadow rounded-box overflow-hidden">
+                    <div class="stat flex-1 border-r border-base-200">
+                        <div class="stat-title">{{ __('Average') }}</div>
+                        <div class="stat-value {{ $trimesterAverage >= 10 ? 'text-success' : 'text-error' }}">
+                            {{ number_format($trimesterAverage, 2) }}
+                        </div>
+                        <div class="stat-desc">/ {{ $student->class?->grade_base ?? 20 }}</div>
+                    </div>
+                    <div class="stat flex-1 border-r border-base-200">
+                        <div class="stat-title">{{ __('Rank') }}</div>
+                        <div class="stat-value text-primary">
+                            @if($rankInfo['rank'])
+                                {{ $rankInfo['rank'] }}<span class="text-lg text-base-content/60">/{{ $rankInfo['total'] }}</span>
+                            @else
+                                -
+                            @endif
+                        </div>
+                    </div>
+                    <div class="stat flex-1">
+                        <div class="stat-title">{{ __('Mention') }}</div>
+                        <div class="stat-value text-lg {{ $trimesterAverage >= 10 ? 'text-success' : 'text-warning' }}">
+                            {{ $mention ?? '-' }}
+                        </div>
+                    </div>
+                </div>
+            @endif
 
             {{-- Grades Table --}}
             <div class="card bg-base-100 shadow">
@@ -223,23 +244,13 @@
                                             {{ number_format($trimesterAverage, 2) }}
                                         </span>
                                     </td>
-                                    <td></td>
+                                    <td class="font-bold">{{ $mention }}</td>
                                 </tr>
                             </tfoot>
                         @endif
                     </table>
                 </div>
             </div>
-
-            {{-- Notes --}}
-            @if ($student->notes)
-                <div class="card bg-base-100 shadow">
-                    <div class="card-body">
-                        <h3 class="card-title text-base">{{ __('Notes') }}</h3>
-                        <p class="text-sm">{{ $student->notes }}</p>
-                    </div>
-                </div>
-            @endif
         </div>
     </div>
 </div>

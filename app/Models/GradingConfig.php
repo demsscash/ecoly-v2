@@ -2,14 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GradingConfig extends Model
 {
-    use HasFactory;
-
     protected $table = 'grading_config';
 
     protected $fillable = [
@@ -34,64 +31,73 @@ class GradingConfig extends Model
     ];
 
     /**
-     * Get the school year.
+     * Get the instance for active school year (or create default)
      */
+    public static function instance(): self
+    {
+        $schoolYear = SchoolYear::where('is_active', true)->first();
+        
+        if (!$schoolYear) {
+            // Return a default config object without saving
+            return new self([
+                'control_weight' => 40,
+                'exam_weight' => 60,
+                'mention_excellent' => 16,
+                'mention_very_good' => 14,
+                'mention_good' => 12,
+                'mention_fairly_good' => 10,
+                'passing_grade' => 10,
+            ]);
+        }
+
+        $config = static::where('school_year_id', $schoolYear->id)->first();
+
+        if (!$config) {
+            $config = static::create([
+                'school_year_id' => $schoolYear->id,
+                'control_weight' => 40,
+                'exam_weight' => 60,
+                'mention_excellent' => 16,
+                'mention_very_good' => 14,
+                'mention_good' => 12,
+                'mention_fairly_good' => 10,
+                'passing_grade' => 10,
+            ]);
+        }
+
+        return $config;
+    }
+
+    /**
+     * Accessors for compatibility with code using threshold naming
+     */
+    public function getExcellentThresholdAttribute(): float
+    {
+        return (float) ($this->mention_excellent ?? 16);
+    }
+
+    public function getVeryGoodThresholdAttribute(): float
+    {
+        return (float) ($this->mention_very_good ?? 14);
+    }
+
+    public function getGoodThresholdAttribute(): float
+    {
+        return (float) ($this->mention_good ?? 12);
+    }
+
+    public function getFairlyGoodThresholdAttribute(): float
+    {
+        return (float) ($this->mention_fairly_good ?? 10);
+    }
+
+    public function getPassThresholdAttribute(): float
+    {
+        return (float) ($this->passing_grade ?? 10);
+    }
+
     public function schoolYear(): BelongsTo
     {
         return $this->belongsTo(SchoolYear::class);
-    }
-
-    /**
-     * Get config for active year or create default.
-     */
-    public static function getForActiveYear(): ?self
-    {
-        $activeYear = SchoolYear::active();
-        if (!$activeYear) {
-            return null;
-        }
-
-        return self::firstOrCreate(
-            ['school_year_id' => $activeYear->id],
-            [
-                'control_weight' => 40,
-                'exam_weight' => 60,
-                'mention_excellent' => 16.00,
-                'mention_very_good' => 14.00,
-                'mention_good' => 12.00,
-                'mention_fairly_good' => 10.00,
-                'passing_grade' => 10.00,
-            ]
-        );
-    }
-
-    /**
-     * Get mention for a given average.
-     */
-    public function getMention(float $average, int $gradeBase = 20): string
-    {
-        // Convert to base 20 for comparison
-        $normalizedAverage = $gradeBase === 10 ? $average * 2 : $average;
-
-        if ($normalizedAverage >= $this->mention_excellent) {
-            return 'Excellent';
-        } elseif ($normalizedAverage >= $this->mention_very_good) {
-            return 'Très Bien';
-        } elseif ($normalizedAverage >= $this->mention_good) {
-            return 'Bien';
-        } elseif ($normalizedAverage >= $this->mention_fairly_good) {
-            return 'Assez Bien';
-        } else {
-            return 'Passable';
-        }
-    }
-
-    /**
-     * Check if student passes.
-     */
-    public function isPassing(float $average, int $gradeBase = 20): bool
-    {
-        $normalizedAverage = $gradeBase === 10 ? $average * 2 : $average;
-        return $normalizedAverage >= $this->passing_grade;
     }
 }
