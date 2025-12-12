@@ -77,3 +77,8 @@ Route::get('/bulletins', App\Livewire\Admin\Bulletins::class)
 Route::get('/payments', App\Livewire\Admin\Payments::class)
     ->middleware(['auth', 'role:admin,secretary'])
     ->name('payments');
+
+// Financial Reports
+Route::get('/admin/financial-reports', \App\Livewire\Admin\FinancialReports::class)
+    ->middleware(['auth', 'role:admin'])
+    ->name('admin.financial-reports');

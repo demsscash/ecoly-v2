@@ -168,6 +168,12 @@
                                 {{ __('Payments') }}
                             </a>
                         </li>
+                        <li>
+                            <a href="{{ route('admin.financial-reports') }}" class="{{ request()->routeIs('admin.financial-reports') ? 'active' : '' }}">
+                            
+                                {{ __('Financial Reports') }}
+                            </a>
+                        </li>
                     @endif
                     
                     {{-- Teacher Section --}}
