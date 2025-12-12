@@ -26,7 +26,7 @@ class Classes extends Component
 
     public function mount(): void
     {
-        $activeYear = SchoolYear::active();
+        $activeYear = SchoolYear::where('is_active', true)->first();
         $this->selectedYearId = $activeYear?->id ?? SchoolYear::latest()->first()?->id;
     }
 
@@ -145,7 +145,7 @@ class Classes extends Component
         $years = SchoolYear::orderByDesc('start_date')->get();
         
         $classes = $this->selectedYearId 
-            ? SchoolClass::forYear($this->selectedYearId)
+            ? SchoolClass::where('school_year_id', $this->selectedYearId)
                 ->orderBy('level')
                 ->orderBy('section')
                 ->get()

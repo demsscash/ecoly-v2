@@ -119,8 +119,8 @@ class TeacherAssignments extends Component
 
         $classes = $this->selectedYearId 
             ? SchoolClass::with(['subjects', 'mainTeacher'])
-                ->forYear($this->selectedYearId)
-                ->active()
+                ->where('school_year_id', $this->selectedYearId)
+                ->where('is_active', true)
                 ->orderBy('level')
                 ->orderBy('section')
                 ->get()
