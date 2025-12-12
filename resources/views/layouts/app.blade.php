@@ -163,7 +163,11 @@
                                 {{ __('Students') }}
                             </a>
                         </li>
-                        <li><a href="#">{{ __('Finances') }}</a></li>
+                        <li>
+                            <a href="{{ route('payments') }}" class="{{ request()->routeIs('payments') ? 'active' : '' }}">
+                                {{ __('Payments') }}
+                            </a>
+                        </li>
                     @endif
                     
                     {{-- Teacher Section --}}

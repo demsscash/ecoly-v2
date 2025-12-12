@@ -2,16 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Student extends Model
 {
-    use HasFactory, SoftDeletes;
-
     protected $fillable = [
         'matricule',
         'nni',
@@ -21,24 +17,21 @@ class Student extends Model
         'last_name_ar',
         'birth_date',
         'birth_place',
-        'birth_place_ar',
         'gender',
         'nationality',
+        'photo',
         'guardian_name',
-        'guardian_name_ar',
         'guardian_phone',
-        'guardian_phone_2',
+        'guardian_phone2',
         'guardian_email',
         'guardian_profession',
         'address',
-        'address_ar',
         'class_id',
         'school_year_id',
         'enrollment_date',
         'previous_school',
-        'status',
         'notes',
-        'photo_path',
+        'status',
     ];
 
     protected $casts = [
@@ -46,132 +39,122 @@ class Student extends Model
         'enrollment_date' => 'date',
     ];
 
-    /**
-     * Get full name.
-     */
-    public function getFullNameAttribute(): string
-    {
-        return "{$this->first_name} {$this->last_name}";
-    }
-
-    /**
-     * Get full name in Arabic.
-     */
-    public function getFullNameArAttribute(): string
-    {
-        return "{$this->first_name_ar} {$this->last_name_ar}";
-    }
-
-    /**
-     * Get localized full name.
-     */
-    public function getNameAttribute(): string
-    {
-        if (app()->getLocale() === 'ar' && $this->first_name_ar) {
-            return $this->full_name_ar;
-        }
-        return $this->full_name;
-    }
-
-    /**
-     * Get the class.
-     */
     public function class(): BelongsTo
     {
         return $this->belongsTo(SchoolClass::class, 'class_id');
     }
 
-    /**
-     * Get the school year.
-     */
     public function schoolYear(): BelongsTo
     {
         return $this->belongsTo(SchoolYear::class);
     }
 
-    /**
-     * Get the grades.
-     */
     public function grades(): HasMany
     {
         return $this->hasMany(Grade::class);
     }
 
-    /**
-     * Get photo URL with default fallback.
-     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function getFullNameAttribute(): string
+    {
+        return $this->first_name . ' ' . $this->last_name;
+    }
+
+    public function getFullNameArAttribute(): ?string
+    {
+        if (!$this->first_name_ar && !$this->last_name_ar) {
+            return null;
+        }
+        return $this->first_name_ar . ' ' . $this->last_name_ar;
+    }
+
     public function getPhotoUrlAttribute(): string
     {
-        if ($this->photo_path) {
-            return asset('storage/' . $this->photo_path);
+        if ($this->photo && file_exists(public_path('storage/' . $this->photo))) {
+            return asset('storage/' . $this->photo);
         }
         
-        // Default silhouette based on gender
-        return $this->gender === 'female' 
-            ? asset('images/default-female.svg')
-            : asset('images/default-male.svg');
+        return 'https://ui-avatars.com/api/?name=' . urlencode($this->full_name) . '&background=6366f1&color=fff';
     }
 
-    /**
-     * Check if student has custom photo.
-     */
-    public function hasPhoto(): bool
+    public static function generateMatricule(): string
     {
-        return !empty($this->photo_path);
-    }
-
-    /**
-     * Generate unique matricule.
-     */
-    public static function generateMatricule(int $schoolYearId): string
-    {
-        $year = SchoolYear::find($schoolYearId);
-        $yearPrefix = $year ? substr($year->name, 0, 4) : date('Y');
-        
-        $lastStudent = self::withTrashed()
-            ->where('school_year_id', $schoolYearId)
-            ->orderByDesc('id')
+        $year = date('Y');
+        $lastStudent = self::whereYear('created_at', $year)
+            ->orderBy('id', 'desc')
             ->first();
         
-        $sequence = $lastStudent 
-            ? (int) substr($lastStudent->matricule, -4) + 1 
-            : 1;
-        
-        return $yearPrefix . str_pad($sequence, 4, '0', STR_PAD_LEFT);
-    }
-
-    /**
-     * Validate NNI format (10 digits).
-     */
-    public static function isValidNni(?string $nni): bool
-    {
-        if (empty($nni)) {
-            return true; // NNI is optional
+        if ($lastStudent && preg_match('/MAT-' . $year . '-(\d+)/', $lastStudent->matricule, $matches)) {
+            $number = intval($matches[1]) + 1;
+        } else {
+            $number = 1;
         }
-        return preg_match('/^\d{10}$/', $nni) === 1;
+        
+        return 'MAT-' . $year . '-' . str_pad($number, 4, '0', STR_PAD_LEFT);
     }
 
     /**
-     * Scope for active students.
+     * Initialize payments for new student
      */
-    public function scopeActive($query)
+    public function initializePayments(): void
     {
-        return $query->where('status', 'active');
+        if (!$this->class_id || !$this->school_year_id) return;
+
+        $class = $this->class;
+        $schoolYear = $this->schoolYear;
+
+        // Registration fee
+        if ($class->registration_fee > 0) {
+            Payment::create([
+                'student_id' => $this->id,
+                'school_year_id' => $this->school_year_id,
+                'type' => 'registration',
+                'amount' => $class->registration_fee,
+                'status' => 'pending',
+            ]);
+        }
+
+        // Monthly tuition fees
+        if ($class->tuition_fee > 0) {
+            $months = $schoolYear->payment_months ?? 9;
+            $startMonth = 10; // October
+            
+            for ($i = 0; $i < $months; $i++) {
+                $month = (($startMonth + $i - 1) % 12) + 1;
+                $monthStr = str_pad($month, 2, '0', STR_PAD_LEFT);
+                
+                Payment::create([
+                    'student_id' => $this->id,
+                    'school_year_id' => $this->school_year_id,
+                    'type' => 'tuition',
+                    'month' => $monthStr,
+                    'amount' => $class->tuition_fee,
+                    'status' => 'pending',
+                ]);
+            }
+        }
     }
 
     /**
-     * Scope for specific school year.
+     * Get total payments summary
      */
-    public function scopeForYear($query, int $yearId)
+    public function getPaymentsSummary(): array
     {
-        return $query->where('school_year_id', $yearId);
-    }
-
-    /**
-     * Scope for specific class.
-     */
-    public function scopeInClass($query, int $classId)
-    {
-        return $query->where('class_id', $classId);
+        $payments = $this->payments()->where('school_year_id', $this->school_year_id)->get();
+        
+        $totalDue = $payments->sum('amount');
+        $totalPaid = $payments->sum('amount_paid');
+        $balance = $totalDue - $totalPaid;
+        
+        return [
+            'total_due' => $totalDue,
+            'total_paid' => $totalPaid,
+            'balance' => $balance,
+            'status' => $balance <= 0 ? 'paid' : ($totalPaid > 0 ? 'partial' : 'pending'),
+        ];
     }
 }
