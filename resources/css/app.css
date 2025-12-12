@@ -42,3 +42,9 @@
 [x-cloak] {
     display: none !important;
 }
+
+/* Fix select dropdown text color */
+select option {
+    color: #1f2937;
+    background-color: #ffffff;
+}

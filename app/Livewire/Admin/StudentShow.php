@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Student;
+use App\Models\Payment;
 use App\Models\Grade;
 use App\Models\Trimester;
 use App\Models\SchoolSetting;
@@ -10,12 +11,14 @@ use App\Models\GradingConfig;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Mpdf\Mpdf;
 
 #[Layout('layouts.app')]
 class StudentShow extends Component
 {
     public Student $student;
     public ?int $selectedTrimesterId = null;
+    public string $activeTab = 'grades';
 
     public function mount(Student $student): void
     {
@@ -32,6 +35,88 @@ class StudentShow extends Component
     public function getTitle(): string
     {
         return $this->student->full_name . ' - Ecoly';
+    }
+
+    public function setTab(string $tab): void
+    {
+        $this->activeTab = $tab;
+    }
+
+    /**
+     * Get student payments summary
+     */
+    public function getPaymentsSummary(): array
+    {
+        $payments = Payment::where('student_id', $this->student->id)
+            ->where('school_year_id', $this->student->school_year_id)
+            ->get();
+
+        $totalDue = $payments->sum('amount');
+        $totalPaid = $payments->sum('amount_paid');
+        $balance = $totalDue - $totalPaid;
+
+        return [
+            'total_due' => $totalDue,
+            'total_paid' => $totalPaid,
+            'balance' => $balance,
+            'status' => $balance <= 0 ? 'paid' : ($totalPaid > 0 ? 'partial' : 'pending'),
+        ];
+    }
+
+    /**
+     * Download financial statement PDF
+     */
+    public function downloadFinancialStatement()
+    {
+        $payments = Payment::where('student_id', $this->student->id)
+            ->where('school_year_id', $this->student->school_year_id)
+            ->orderBy('type')
+            ->orderBy('month')
+            ->get();
+
+        $summary = $this->getPaymentsSummary();
+        $school = SchoolSetting::first();
+
+        $data = [
+            'school' => [
+                'name' => $school?->name_fr ?? 'École',
+                'name_ar' => $school?->name_ar ?? '',
+                'address' => $school?->address_fr ?? '',
+                'phone' => $school?->phone ?? '',
+                'logo' => $school?->logo_path ?? null,
+            ],
+            'student' => [
+                'full_name' => $this->student->full_name,
+                'matricule' => $this->student->matricule,
+                'class' => $this->student->class?->name ?? '-',
+                'school_year' => $this->student->schoolYear?->name ?? '-',
+                'guardian_name' => $this->student->guardian_name,
+                'guardian_phone' => $this->student->guardian_phone,
+            ],
+            'payments' => $payments,
+            'summary' => $summary,
+            'generated_at' => now()->format('d/m/Y H:i'),
+        ];
+
+        $mpdf = new Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'orientation' => 'P',
+            'margin_left' => 15,
+            'margin_right' => 15,
+            'margin_top' => 15,
+            'margin_bottom' => 15,
+        ]);
+
+        $html = view('pdf.financial-statement', $data)->render();
+        $mpdf->WriteHTML($html);
+        
+        $pdfContent = $mpdf->Output('', 'S');
+        $filename = 'situation_financiere_' . $this->student->matricule . '.pdf';
+
+        return response()->streamDownload(function () use ($pdfContent) {
+            echo $pdfContent;
+        }, $filename, ['Content-Type' => 'application/pdf']);
     }
 
     /**
@@ -65,58 +150,35 @@ class StudentShow extends Component
     }
 
     /**
-     * Calculate annual average (average of all trimesters)
+     * Get mention based on average
      */
-    public function getAnnualAverage(): ?float
+    protected function getMention(?float $average): ?string
     {
-        $trimesters = Trimester::where('school_year_id', $this->student->school_year_id)
-            ->orderBy('start_date')
-            ->get();
+        if ($average === null) return null;
 
-        $trimesterAverages = [];
-
-        foreach ($trimesters as $trimester) {
-            $avg = $this->calculateTrimesterAverage($trimester->id);
-            if ($avg !== null) {
-                $trimesterAverages[] = $avg;
-            }
+        $config = GradingConfig::first();
+        if (!$config) {
+            if ($average >= 16) return 'Très Bien';
+            if ($average >= 14) return 'Bien';
+            if ($average >= 12) return 'Assez Bien';
+            if ($average >= 10) return 'Passable';
+            return 'Insuffisant';
         }
 
-        if (empty($trimesterAverages)) {
-            return null;
-        }
-
-        return round(array_sum($trimesterAverages) / count($trimesterAverages), 2);
+        if ($average >= $config->mention_excellent) return 'Excellent';
+        if ($average >= $config->mention_tres_bien) return 'Très Bien';
+        if ($average >= $config->mention_bien) return 'Bien';
+        if ($average >= $config->mention_assez_bien) return 'Assez Bien';
+        if ($average >= $config->mention_passable) return 'Passable';
+        return 'Insuffisant';
     }
 
     /**
-     * Get all trimester averages for display
+     * Get student rank in class for a trimester
      */
-    public function getTrimesterAverages(): array
+    public function getStudentRankForTrimester(?int $trimesterId): array
     {
-        $trimesters = Trimester::where('school_year_id', $this->student->school_year_id)
-            ->orderBy('start_date')
-            ->get();
-
-        $averages = [];
-
-        foreach ($trimesters as $trimester) {
-            $averages[$trimester->id] = [
-                'name' => $trimester->name_fr,
-                'average' => $this->calculateTrimesterAverage($trimester->id),
-                'rank' => $this->getStudentRankForTrimester($trimester->id),
-            ];
-        }
-
-        return $averages;
-    }
-
-    /**
-     * Calculate student rank in class for a specific trimester
-     */
-    protected function getStudentRankForTrimester(int $trimesterId): array
-    {
-        if (!$this->student->class_id) {
+        if (!$trimesterId || !$this->student->class_id) {
             return ['rank' => null, 'total' => 0];
         }
 
@@ -170,6 +232,40 @@ class StudentShow extends Component
             'rank' => $studentRank,
             'total' => count($validAverages),
         ];
+    }
+
+    /**
+     * Get trimester averages for display
+     */
+    public function getTrimesterAverages(): array
+    {
+        $trimesters = Trimester::where('school_year_id', $this->student->school_year_id)
+            ->orderBy('start_date')
+            ->get();
+
+        $averages = [];
+        foreach ($trimesters as $trimester) {
+            $averages[$trimester->id] = [
+                'name' => $trimester->name,
+                'average' => $this->calculateTrimesterAverage($trimester->id),
+            ];
+        }
+
+        return $averages;
+    }
+
+    /**
+     * Get annual average
+     */
+    public function getAnnualAverage(): ?float
+    {
+        $trimesterAverages = $this->getTrimesterAverages();
+        $validAverages = array_filter(
+            array_column($trimesterAverages, 'average'),
+            fn($v) => $v !== null
+        );
+
+        return !empty($validAverages) ? round(array_sum($validAverages) / count($validAverages), 2) : null;
     }
 
     /**
@@ -246,39 +342,24 @@ class StudentShow extends Component
     }
 
     /**
-     * Get mention based on average
+     * Download attestation PDF
      */
-    public function getMention(?float $average): ?string
-    {
-        if ($average === null) return null;
-
-        $config = GradingConfig::instance();
-
-        if ($average >= $config->excellent_threshold) return __('Excellent');
-        if ($average >= $config->very_good_threshold) return __('Very Good');
-        if ($average >= $config->good_threshold) return __('Good');
-        if ($average >= $config->fairly_good_threshold) return __('Fairly Good');
-        if ($average >= $config->pass_threshold) return __('Passable');
-        
-        return __('Insufficient');
-    }
-
     public function downloadAttestation()
     {
-        $school = SchoolSetting::instance();
-        $student = $this->student;
+        $school = SchoolSetting::first();
         
-        $pdf = Pdf::loadView('pdf.attestation-inscription', [
-            'student' => $student,
+        $pdf = Pdf::loadView('pdf.attestation', [
+            'student' => $this->student,
             'school' => $school,
             'date' => now(),
         ]);
-
+        
         $pdf->setPaper('A4', 'portrait');
-
-        return response()->streamDownload(function () use ($pdf) {
-            echo $pdf->output();
-        }, 'attestation_' . $student->matricule . '.pdf');
+        
+        return response()->streamDownload(
+            fn() => print($pdf->output()),
+            'attestation_' . $this->student->matricule . '.pdf'
+        );
     }
 
     public function render()
@@ -312,6 +393,14 @@ class StudentShow extends Component
         $annualRank = $this->getAnnualRank();
         $annualMention = $this->getMention($annualAverage);
 
+        // Payments data
+        $payments = Payment::where('student_id', $this->student->id)
+            ->where('school_year_id', $this->student->school_year_id)
+            ->orderBy('type')
+            ->orderBy('month')
+            ->get();
+        $paymentsSummary = $this->getPaymentsSummary();
+
         return view('livewire.admin.student-show', [
             'trimesters' => $trimesters,
             'grades' => $grades,
@@ -323,6 +412,8 @@ class StudentShow extends Component
             'annualAverage' => $annualAverage,
             'annualRank' => $annualRank,
             'annualMention' => $annualMention,
+            'payments' => $payments,
+            'paymentsSummary' => $paymentsSummary,
         ]);
     }
 }

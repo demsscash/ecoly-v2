@@ -413,5 +413,10 @@
     "To month": "Au mois",
     "Rate": "Taux",
     "Receipt": "Reçu",
-    "No payment to receipt.": "Aucun paiement à recevoir."
+    "No payment to receipt.": "Aucun paiement à recevoir.",
+    "Certificate": "Attestation",
+    "Export PDF": "Exporter PDF",
+    "No payments found for this student.": "Aucun paiement trouvé pour cet élève.",
+    "Reference": "Référence",
+    "No trimester": "Aucun trimestre"
 }
