@@ -90,17 +90,21 @@ class Payment extends Model
     public static function generateReference(): string
     {
         $year = date('Y');
-        $lastPayment = self::whereYear('created_at', $year)
-            ->whereNotNull('reference')
-            ->orderBy('id', 'desc')
+        $prefix = 'REC-' . $year . '-';
+        
+        // Get the last reference for this year
+        $lastPayment = self::whereNotNull('reference')
+            ->where('reference', 'like', $prefix . '%')
+            ->orderByRaw("CAST(REPLACE(reference, '{$prefix}', '') AS INTEGER) DESC")
             ->first();
         
-        if ($lastPayment && preg_match('/REC-' . $year . '-(\d+)/', $lastPayment->reference, $matches)) {
-            $number = intval($matches[1]) + 1;
+        if ($lastPayment) {
+            $lastNumber = (int) str_replace($prefix, '', $lastPayment->reference);
+            $number = $lastNumber + 1;
         } else {
             $number = 1;
         }
         
-        return 'REC-' . $year . '-' . str_pad($number, 5, '0', STR_PAD_LEFT);
+        return $prefix . str_pad($number, 5, '0', STR_PAD_LEFT);
     }
 }

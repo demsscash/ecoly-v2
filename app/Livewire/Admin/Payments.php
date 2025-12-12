@@ -4,10 +4,9 @@ namespace App\Livewire\Admin;
 
 use App\Models\Payment;
 use App\Models\SchoolClass;
-use App\Models\SchoolSettings;
+use App\Models\SchoolSetting;
 use App\Models\SchoolYear;
 use App\Models\Student;
-use App\Services\PdfService;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -130,9 +129,6 @@ class Payments extends Component
         $this->dispatch('toast', message: __('Payment recorded successfully.'), type: 'success');
     }
 
-    /**
-     * Download receipt PDF
-     */
     public function downloadReceipt(int $paymentId)
     {
         $payment = Payment::with(['student.class', 'student.schoolYear', 'receivedBy'])->find($paymentId);
@@ -142,14 +138,15 @@ class Payments extends Component
             return;
         }
 
-        $school = SchoolSettings::first();
+        $school = SchoolSetting::first();
         
         $data = [
             'school' => [
-                'name' => $school?->name ?? 'École',
+                'name' => $school?->name_fr ?? 'École',
                 'name_ar' => $school?->name_ar ?? '',
-                'address' => $school?->address ?? '',
+                'address' => $school?->address_fr ?? '',
                 'phone' => $school?->phone ?? '',
+                'logo' => $school?->logo_path ?? null,
             ],
             'student' => [
                 'full_name' => $payment->student->full_name,
@@ -166,7 +163,7 @@ class Payments extends Component
                 'amount_paid' => $payment->amount_paid,
                 'method_label' => $this->getMethodLabel($payment->payment_method),
                 'paid_date' => $payment->paid_date?->format('d/m/Y') ?? now()->format('d/m/Y'),
-                'received_by' => $payment->receivedBy?->first_name . ' ' . $payment->receivedBy?->last_name ?? '-',
+                'received_by' => $payment->receivedBy ? $payment->receivedBy->first_name . ' ' . $payment->receivedBy->last_name : '-',
             ],
             'generated_at' => now()->format('d/m/Y H:i'),
         ];
@@ -175,10 +172,10 @@ class Payments extends Component
             'mode' => 'utf-8',
             'format' => 'A5',
             'orientation' => 'P',
-            'margin_left' => 10,
-            'margin_right' => 10,
-            'margin_top' => 10,
-            'margin_bottom' => 10,
+            'margin_left' => 5,
+            'margin_right' => 5,
+            'margin_top' => 5,
+            'margin_bottom' => 5,
         ]);
 
         $html = view('pdf.receipt', $data)->render();

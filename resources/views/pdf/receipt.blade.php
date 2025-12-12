@@ -5,249 +5,344 @@
     <style>
         body {
             font-family: dejavusans, sans-serif;
-            font-size: 11pt;
-            line-height: 1.5;
-            color: #333;
+            font-size: 10pt;
+            line-height: 1.3;
+            color: #1a1a1a;
+            margin: 0;
+            padding: 0;
         }
         
-        .receipt-container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
+        .receipt-border {
+            border: 3px solid #1a365d;
+            padding: 15px;
+            margin: 5px;
         }
         
         .header {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        
+        .header td {
+            vertical-align: middle;
+        }
+        
+        .logo-cell {
+            width: 60px;
+        }
+        
+        .logo {
+            width: 55px;
+            height: 55px;
+            object-fit: contain;
+        }
+        
+        .school-info {
             text-align: center;
-            border-bottom: 2px solid #1a365d;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
+            padding: 0 10px;
         }
         
         .school-name {
-            font-size: 16pt;
+            font-size: 13pt;
             font-weight: bold;
             color: #1a365d;
+            margin-bottom: 2px;
         }
         
         .school-name-ar {
-            font-size: 14pt;
+            font-size: 12pt;
             font-weight: bold;
             color: #1a365d;
             direction: rtl;
         }
         
-        .receipt-title {
-            font-size: 18pt;
-            font-weight: bold;
-            margin: 15px 0;
-            color: #1a365d;
-        }
-        
-        .receipt-number {
-            font-size: 12pt;
+        .school-contact {
+            font-size: 8pt;
             color: #666;
+            margin-top: 3px;
         }
         
-        .info-section {
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
+        .receipt-title-box {
+            background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+            background: #1a365d;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 12px;
         }
         
-        .info-row {
-            display: table;
-            width: 100%;
+        .receipt-title {
+            font-size: 14pt;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        
+        .receipt-title-ar {
+            font-size: 12pt;
+            direction: rtl;
+            margin-top: 2px;
+        }
+        
+        .receipt-ref {
+            background: #f0f4f8;
+            display: inline-block;
+            padding: 3px 15px;
+            font-size: 10pt;
+            font-weight: bold;
+            color: #1a365d;
+            margin-top: 8px;
+            border-radius: 3px;
+        }
+        
+        .section {
+            margin-bottom: 10px;
+        }
+        
+        .section-title {
+            font-size: 9pt;
+            font-weight: bold;
+            color: #1a365d;
+            text-transform: uppercase;
+            border-bottom: 1px solid #cbd5e0;
+            padding-bottom: 3px;
             margin-bottom: 8px;
         }
         
+        .info-grid {
+            width: 100%;
+        }
+        
+        .info-grid td {
+            padding: 4px 8px;
+            vertical-align: top;
+        }
+        
         .info-label {
-            display: table-cell;
-            width: 150px;
-            font-weight: bold;
-            color: #4a5568;
+            font-size: 8pt;
+            color: #718096;
+            text-transform: uppercase;
         }
         
         .info-value {
-            display: table-cell;
+            font-size: 10pt;
+            font-weight: 600;
+            color: #1a1a1a;
         }
         
-        .amount-section {
+        .amount-box {
+            background: #f0fff4;
+            border: 2px solid #22863a;
             text-align: center;
-            padding: 20px;
-            background: #edf2f7;
-            border: 2px solid #1a365d;
-            margin-bottom: 20px;
+            padding: 12px;
+            margin: 12px 0;
         }
         
         .amount-label {
-            font-size: 12pt;
-            color: #4a5568;
+            font-size: 9pt;
+            color: #276749;
             margin-bottom: 5px;
         }
         
         .amount-value {
-            font-size: 24pt;
+            font-size: 22pt;
             font-weight: bold;
             color: #22863a;
         }
         
-        .amount-words {
-            font-size: 10pt;
-            font-style: italic;
-            color: #666;
-            margin-top: 5px;
+        .amount-currency {
+            font-size: 12pt;
+            color: #276749;
         }
         
-        .details-table {
+        .payment-detail-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
         
-        .details-table th {
-            background: #1a365d;
-            color: white;
-            padding: 10px;
+        .payment-detail-table th {
+            background: #edf2f7;
+            padding: 8px;
             text-align: left;
-            font-size: 10pt;
+            font-size: 9pt;
+            color: #4a5568;
+            border: 1px solid #cbd5e0;
         }
         
-        .details-table td {
-            padding: 10px;
-            border-bottom: 1px solid #e2e8f0;
+        .payment-detail-table td {
+            padding: 8px;
+            border: 1px solid #cbd5e0;
+            font-size: 10pt;
         }
         
         .signatures {
-            margin-top: 40px;
-            display: table;
             width: 100%;
+            margin-top: 15px;
+        }
+        
+        .signatures td {
+            width: 50%;
+            text-align: center;
+            padding: 8px;
+            vertical-align: top;
         }
         
         .signature-box {
-            display: table-cell;
-            width: 50%;
-            text-align: center;
+            border: 1px dashed #cbd5e0;
             padding: 10px;
+            min-height: 50px;
         }
         
         .signature-title {
+            font-size: 8pt;
             font-weight: bold;
-            margin-bottom: 40px;
-        }
-        
-        .signature-line {
-            border-top: 1px solid #333;
-            width: 150px;
-            margin: 0 auto;
+            color: #4a5568;
+            margin-bottom: 35px;
         }
         
         .footer {
-            margin-top: 30px;
+            margin-top: 12px;
             text-align: center;
-            font-size: 9pt;
-            color: #718096;
+            font-size: 7pt;
+            color: #a0aec0;
             border-top: 1px solid #e2e8f0;
-            padding-top: 15px;
+            padding-top: 8px;
         }
         
-        .arabic {
-            direction: rtl;
-            text-align: right;
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 60pt;
+            color: rgba(34, 134, 58, 0.08);
+            font-weight: bold;
+            z-index: -1;
         }
     </style>
 </head>
 <body>
-    <div class="receipt-container">
-        {{-- Header --}}
-        <div class="header">
-            <div class="school-name">{{ $school['name'] }}</div>
-            <div class="school-name-ar arabic">{{ $school['name_ar'] ?? '' }}</div>
-            <div style="font-size: 10pt; margin-top: 5px;">{{ $school['address'] ?? '' }} | Tél: {{ $school['phone'] ?? '' }}</div>
-            
-            <div class="receipt-title">REÇU DE PAIEMENT / وصل الدفع</div>
-            <div class="receipt-number">N° {{ $payment['reference'] }}</div>
+    <div class="receipt-border">
+        {{-- Header with Logo --}}
+        <table class="header">
+            <tr>
+                <td class="logo-cell">
+                    @if($school['logo'] ?? null)
+                        <img src="{{ public_path('storage/' . $school['logo']) }}" class="logo" alt="Logo">
+                    @else
+                        <div style="width: 55px; height: 55px; background: #1a365d; border-radius: 5px; text-align: center; line-height: 55px; color: white; font-weight: bold; font-size: 20pt;">E</div>
+                    @endif
+                </td>
+                <td class="school-info">
+                    <div class="school-name">{{ $school['name'] }}</div>
+                    <div class="school-name-ar">{{ $school['name_ar'] }}</div>
+                    <div class="school-contact">{{ $school['address'] }} • Tél: {{ $school['phone'] }}</div>
+                </td>
+                <td class="logo-cell" style="text-align: right;">
+                    @if($school['logo'] ?? null)
+                        <img src="{{ public_path('storage/' . $school['logo']) }}" class="logo" alt="Logo">
+                    @else
+                        <div style="width: 55px; height: 55px; background: #1a365d; border-radius: 5px; text-align: center; line-height: 55px; color: white; font-weight: bold; font-size: 20pt;">E</div>
+                    @endif
+                </td>
+            </tr>
+        </table>
+
+        {{-- Receipt Title --}}
+        <div class="receipt-title-box">
+            <div class="receipt-title">REÇU DE PAIEMENT</div>
+            <div class="receipt-title-ar">وصل الدفع</div>
+            <div class="receipt-ref">N° {{ $payment['reference'] }}</div>
         </div>
 
-        {{-- Student Info --}}
-        <div class="info-section">
-            <div class="info-row">
-                <span class="info-label">Élève / التلميذ:</span>
-                <span class="info-value"><strong>{{ $student['full_name'] }}</strong></span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Matricule / رقم التسجيل:</span>
-                <span class="info-value">{{ $student['matricule'] }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Classe / القسم:</span>
-                <span class="info-value">{{ $student['class'] }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Année scolaire:</span>
-                <span class="info-value">{{ $student['school_year'] }}</span>
-            </div>
+        {{-- Student Information --}}
+        <div class="section">
+            <div class="section-title">Informations de l'élève</div>
+            <table class="info-grid">
+                <tr>
+                    <td style="width: 50%;">
+                        <div class="info-label">Nom complet</div>
+                        <div class="info-value">{{ $student['full_name'] }}</div>
+                    </td>
+                    <td style="width: 25%;">
+                        <div class="info-label">Matricule</div>
+                        <div class="info-value">{{ $student['matricule'] }}</div>
+                    </td>
+                    <td style="width: 25%;">
+                        <div class="info-label">Classe</div>
+                        <div class="info-value">{{ $student['class'] }}</div>
+                    </td>
+                </tr>
+            </table>
         </div>
 
         {{-- Payment Details --}}
-        <table class="details-table">
-            <thead>
+        <div class="section">
+            <div class="section-title">Détail du paiement</div>
+            <table class="payment-detail-table">
                 <tr>
-                    <th>Désignation</th>
-                    <th style="text-align: right;">Montant (MRU)</th>
+                    <th style="width: 60%;">Désignation</th>
+                    <th style="width: 20%; text-align: center;">Année</th>
+                    <th style="width: 20%; text-align: right;">Montant</th>
                 </tr>
-            </thead>
-            <tbody>
                 <tr>
                     <td>
-                        {{ $payment['type_label'] }}
+                        <strong>{{ $payment['type_label'] }}</strong>
                         @if($payment['month'])
-                            - {{ $payment['month_label'] }}
+                            <br><span style="color: #718096; font-size: 9pt;">{{ $payment['month_label'] }}</span>
                         @endif
                     </td>
-                    <td style="text-align: right;">{{ number_format($payment['amount_paid'], 0) }}</td>
+                    <td style="text-align: center;">{{ $student['school_year'] }}</td>
+                    <td style="text-align: right; font-weight: bold;">{{ number_format($payment['amount_paid'], 0) }} MRU</td>
                 </tr>
-            </tbody>
-        </table>
-
-        {{-- Amount --}}
-        <div class="amount-section">
-            <div class="amount-label">Montant payé / المبلغ المدفوع</div>
-            <div class="amount-value">{{ number_format($payment['amount_paid'], 0) }} MRU</div>
+            </table>
         </div>
 
-        {{-- Payment Info --}}
-        <div class="info-section">
-            <div class="info-row">
-                <span class="info-label">Mode de paiement:</span>
-                <span class="info-value">{{ $payment['method_label'] }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Date:</span>
-                <span class="info-value">{{ $payment['paid_date'] }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Reçu par:</span>
-                <span class="info-value">{{ $payment['received_by'] }}</span>
-            </div>
+        {{-- Amount Box --}}
+        <div class="amount-box">
+            <div class="amount-label">MONTANT TOTAL PAYÉ / المبلغ الإجمالي المدفوع</div>
+            <div class="amount-value">{{ number_format($payment['amount_paid'], 0) }} <span class="amount-currency">MRU</span></div>
+        </div>
+
+        {{-- Payment Method --}}
+        <div class="section">
+            <table class="info-grid">
+                <tr>
+                    <td style="width: 33%;">
+                        <div class="info-label">Mode de paiement</div>
+                        <div class="info-value">{{ $payment['method_label'] }}</div>
+                    </td>
+                    <td style="width: 33%;">
+                        <div class="info-label">Date de paiement</div>
+                        <div class="info-value">{{ $payment['paid_date'] }}</div>
+                    </td>
+                    <td style="width: 34%;">
+                        <div class="info-label">Reçu par</div>
+                        <div class="info-value">{{ $payment['received_by'] }}</div>
+                    </td>
+                </tr>
+            </table>
         </div>
 
         {{-- Signatures --}}
-        <div class="signatures">
-            <div class="signature-box">
-                <div class="signature-title">Cachet de l'école</div>
-                <div class="signature-line"></div>
-            </div>
-            <div class="signature-box">
-                <div class="signature-title">Signature</div>
-                <div class="signature-line"></div>
-            </div>
-        </div>
+        <table class="signatures">
+            <tr>
+                <td>
+                    <div class="signature-box">
+                        <div class="signature-title">CACHET DE L'ÉTABLISSEMENT</div>
+                    </div>
+                </td>
+                <td>
+                    <div class="signature-box">
+                        <div class="signature-title">SIGNATURE DU CAISSIER</div>
+                    </div>
+                </td>
+            </tr>
+        </table>
 
         {{-- Footer --}}
         <div class="footer">
-            {{ $school['name'] }} - {{ $school['address'] ?? '' }}<br>
-            Reçu généré le {{ $generated_at }}
+            Ce reçu est un document officiel • {{ $school['name'] }} • Généré le {{ $generated_at }}
         </div>
     </div>
 </body>
