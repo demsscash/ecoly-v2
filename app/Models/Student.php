@@ -70,12 +70,12 @@ class Student extends Model
         if ($this->photo_path && file_exists(public_path('storage/' . $this->photo_path))) {
             return asset('storage/' . $this->photo_path);
         }
-        
+
         // Return gender-appropriate silhouette
         if ($this->gender === 'female') {
             return asset('images/default-female.svg');
         }
-        
+
         return asset('images/default-male.svg');
     }
 
@@ -85,20 +85,20 @@ class Student extends Model
     public static function generateMatricule(?int $schoolYearId = null): string
     {
         $year = date('Y');
-        
+
         $query = self::whereYear('created_at', $year);
         if ($schoolYearId) {
             $query->where('school_year_id', $schoolYearId);
         }
-        
+
         $lastStudent = $query->orderBy('id', 'desc')->first();
-        
+
         if ($lastStudent && preg_match('/MAT-' . $year . '-(\d+)/', $lastStudent->matricule, $matches)) {
             $number = intval($matches[1]) + 1;
         } else {
             $number = 1;
         }
-        
+
         return 'MAT-' . $year . '-' . str_pad($number, 4, '0', STR_PAD_LEFT);
     }
 
@@ -132,5 +132,24 @@ class Student extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * Get total payments summary
+     */
+    public function getPaymentsSummary(): array
+    {
+        $payments = $this->payments()->where('school_year_id', $this->school_year_id)->get();
+
+        $totalDue = $payments->sum('amount');
+        $totalPaid = $payments->sum('amount_paid');
+        $balance = $totalDue - $totalPaid;
+
+        return [
+            'total_due' => $totalDue,
+            'total_paid' => $totalPaid,
+            'balance' => $balance,
+            'status' => $balance <= 0 ? 'paid' : ($totalPaid > 0 ? 'partial' : 'pending'),
+        ];
     }
 }
