@@ -111,7 +111,7 @@ class Payment extends Model
     /**
      * Generate unique receipt reference
      */
-    public function generateReference(): string
+    public static function generateReference(): string
     {
         $year = now()->year;
         

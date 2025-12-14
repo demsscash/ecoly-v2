@@ -344,24 +344,64 @@ class StudentShow extends Component
     /**
      * Download attestation PDF
      */
-    public function downloadAttestation()
+    public function downloadAttestation($lang = 'fr')
     {
         $school = SchoolSetting::first();
         
-        $pdf = Pdf::loadView('pdf.attestation', [
-            'student' => $this->student,
-            'school' => $school,
-            'date' => now(),
-        ]);
-        
-        $pdf->setPaper('A4', 'portrait');
-        
-        return response()->streamDownload(
-            fn() => print($pdf->output()),
-            'attestation_' . $this->student->matricule . '.pdf'
-        );
-    }
+        $data = [
+            'school' => [
+                'name_fr' => $school?->name_fr ?? 'École',
+                'name_ar' => $school?->name_ar ?? 'مدرسة',
+                'address_fr' => $school?->address_fr ?? '',
+                'address_ar' => $school?->address_ar ?? '',
+                'phone' => $school?->phone ?? '',
+                'email' => $school?->email ?? '',
+                'director_name_fr' => $school?->director_name_fr ?? '',
+                'director_name_ar' => $school?->director_name_ar ?? '',
+                'logo_path' => $school?->logo_path ?? null,
+                'signature_path' => $school?->signature_path ?? null,
+                'stamp_path' => $school?->stamp_path ?? null,
+            ],
+            'student' => [
+                'id' => $this->student->id,
+                'full_name' => $this->student->full_name,
+                'full_name_ar' => $this->student->full_name_ar,
+                'matricule' => $this->student->matricule,
+                'nni' => $this->student->nni,
+                'birth_date' => $this->student->birth_date->format('d/m/Y'),
+                'birth_place' => $this->student->birth_place,
+                'birth_place_ar' => $this->student->birth_place_ar,
+                'class' => $this->student->class?->name ?? '-',
+                'school_year' => $this->student->schoolYear?->name ?? '-',
+                'guardian_name' => $this->student->guardian_name,
+                'guardian_name_ar' => $this->student->guardian_name_ar,
+                'photo' => $this->student->photo_path,
+            ],
+        ];
 
+        $template = $lang === 'ar' ? 'pdf.attestation-ar' : 'pdf.attestation-fr';
+
+        $mpdf = new Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'orientation' => 'P',
+            'margin_left' => 20,
+            'margin_right' => 20,
+            'margin_top' => 20,
+            'margin_bottom' => 20,
+        ]);
+
+        $html = view($template, $data)->render();
+        $mpdf->WriteHTML($html);
+        
+        $pdfContent = $mpdf->Output('', 'S');
+        $langSuffix = $lang === 'ar' ? '_ar' : '_fr';
+        $filename = 'attestation_' . $this->student->matricule . $langSuffix . '_' . now()->format('Ymd') . '.pdf';
+
+        return response()->streamDownload(function () use ($pdfContent) {
+            echo $pdfContent;
+        }, $filename, ['Content-Type' => 'application/pdf']);
+    }
     public function render()
     {
         $trimesters = Trimester::where('school_year_id', $this->student->school_year_id)
