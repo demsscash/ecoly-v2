@@ -71,7 +71,7 @@
                                 @foreach ($classSubjects[$class->id] as $subject)
                                     <span class="badge badge-outline" title="{{ $subject->name_fr }}">
                                         {{ $subject->code }}
-                                        <span class="text-xs opacity-60 ml-1">({{ $subject->coefficient }})</span>
+                                        
                                     </span>
                                 @endforeach
                             </div>

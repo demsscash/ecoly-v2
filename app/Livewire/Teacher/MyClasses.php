@@ -33,8 +33,8 @@ class MyClasses extends Component
             ->unique();
 
         $classes = SchoolClass::with(['schoolYear', 'students' => function ($q) {
-                $q->where('status', 'active');
-            }])
+            $q->where('status', 'active');
+        }])
             ->whereIn('id', $classIds)
             ->when($this->selectedYearId, fn($q) => $q->where('school_year_id', $this->selectedYearId))
             ->orderBy('level')
@@ -48,9 +48,9 @@ class MyClasses extends Component
                 ->join('subjects', 'subjects.id', '=', 'class_subject.subject_id')
                 ->where('class_subject.class_id', $class->id)
                 ->where('class_subject.teacher_id', $user->id)
-                ->select('subjects.id', 'subjects.name_fr', 'subjects.code', 'class_subject.coefficient')
+                ->select('subjects.id', 'subjects.name_fr', 'subjects.code')
                 ->get();
-            
+
             $classSubjects[$class->id] = $subjects;
         }
 
