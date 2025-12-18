@@ -214,9 +214,9 @@ class Dashboard extends Component
             ->where('status', 'open')
             ->first();
 
-        $assignments = DB::table('teacher_assignments')
-            ->where('user_id', $user->id)
-            ->where('school_year_id', $schoolYear->id)
+        // Get assignments from class_subject table
+        $assignments = DB::table('class_subject')
+            ->where('teacher_id', $user->id)
             ->get();
 
         $classIds = $assignments->pluck('class_id')->unique();
@@ -262,9 +262,9 @@ class Dashboard extends Component
             return collect();
         }
 
-        $assignments = DB::table('teacher_assignments')
-            ->where('user_id', $user->id)
-            ->where('school_year_id', $schoolYear->id)
+        // Get assignments from class_subject table
+        $assignments = DB::table('class_subject')
+            ->where('teacher_id', $user->id)
             ->get();
 
         $classIds = $assignments->pluck('class_id')->unique();

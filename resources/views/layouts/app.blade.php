@@ -197,16 +197,16 @@
                             {{ __('Grades') }}
                         </a>
                     </li>
-                    <li>
+                   @if(auth()->user()->isAdmin() || auth()->user()->isSecretary()) <li>
                         <a href="{{ route('class-grades') }}" class="{{ request()->routeIs('class-grades') ? 'active' : '' }}">
                             {{ __('Class Grades') }}
                         </a>
-                    </li>
-                    <li>
+                    </li>@endif
+                     @if(auth()->user()->isAdmin() || auth()->user()->isSecretary())<li>
                         <a href="{{ route('bulletins') }}" class="{{ request()->routeIs('bulletins') ? 'active' : '' }}">
                             {{ __('Bulletins') }}
                         </a>
-                    </li>
+                    </li>@endif
                 </ul>
             </aside>
         </div>
