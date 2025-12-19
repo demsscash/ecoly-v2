@@ -15,11 +15,7 @@ return [
     */
 
     'postmark' => [
-        'key' => env('POSTMARK_API_KEY'),
-    ],
-
-    'resend' => [
-        'key' => env('RESEND_API_KEY'),
+        'token' => env('POSTMARK_TOKEN'),
     ],
 
     'ses' => [
@@ -28,11 +24,29 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'resend' => [
+        'key' => env('RESEND_KEY'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | WhatsApp Configuration
+    |--------------------------------------------------------------------------
+    */
+
+    'whatsapp' => [
+        'enabled' => env('WHATSAPP_ENABLED', false),
+        'api_url' => env('WHATSAPP_API_URL'),
+        'account_sid' => env('WHATSAPP_ACCOUNT_SID'),
+        'auth_token' => env('WHATSAPP_AUTH_TOKEN'),
+        'from_number' => env('WHATSAPP_FROM_NUMBER'),
     ],
 
 ];

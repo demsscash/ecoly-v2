@@ -82,3 +82,18 @@ Route::get('/payments', App\Livewire\Admin\Payments::class)
 Route::get('/admin/financial-reports', \App\Livewire\Admin\FinancialReports::class)
     ->middleware(['auth', 'role:admin'])
     ->name('admin.financial-reports');
+
+    // Attendance routes (requires feature flag)
+    Route::middleware(['attendance.enabled'])->group(function () {
+        // All authenticated users
+        Route::get('/attendance', \App\Livewire\AttendanceMarking::class)->name('attendance');
+        
+        // Admin + Secretary only
+        Route::middleware('role:admin,secretary')->group(function () {
+            Route::get('/attendance/justifications', \App\Livewire\AttendanceJustifications::class)->name('attendance.justifications');
+            Route::get('/admin/attendance-reports', \App\Livewire\Admin\AttendanceReports::class)->name('admin.attendance-reports');
+        });
+    });
+
+    // Profile route (all authenticated users)
+    Route::get('/profile', App\Livewire\Profile::class)->name('profile');

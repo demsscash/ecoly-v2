@@ -62,7 +62,7 @@
                             </svg>
                         </label>
                         <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 mt-4">
-                            <li><a href="#">{{ __('My Profile') }}</a></li>
+                            <li><a href="{{ route('profile') }}">{{ __('My Profile') }}</a></li>
                             <li>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
@@ -142,11 +142,6 @@
                             </a>
                         </li>
                         <li>
-                            <a href="{{ route('admin.teacher-assignments') }}" class="{{ request()->routeIs('admin.teacher-assignments') ? 'active' : '' }}">
-                                {{ __('Assignments') }}
-                            </a>
-                        </li>
-                        <li>
                             <a href="{{ route('admin.grading-config') }}" class="{{ request()->routeIs('admin.grading-config') ? 'active' : '' }}">
                                 {{ __('Grading Config') }}
                             </a>
@@ -170,7 +165,6 @@
                         </li>
                         <li>
                             <a href="{{ route('admin.financial-reports') }}" class="{{ request()->routeIs('admin.financial-reports') ? 'active' : '' }}">
-                            
                                 {{ __('Financial Reports') }}
                             </a>
                         </li>
@@ -188,7 +182,7 @@
                         </li>
                     @endif
                     
-                    {{-- Academic Section (All users) --}}
+                    {{-- Academic Section --}}
                     <li class="menu-title mt-4">
                         <span>{{ __('Academic') }}</span>
                     </li>
@@ -197,16 +191,51 @@
                             {{ __('Grades') }}
                         </a>
                     </li>
-                   @if(auth()->user()->isAdmin() || auth()->user()->isSecretary()) <li>
-                        <a href="{{ route('class-grades') }}" class="{{ request()->routeIs('class-grades') ? 'active' : '' }}">
-                            {{ __('Class Grades') }}
-                        </a>
-                    </li>@endif
-                     @if(auth()->user()->isAdmin() || auth()->user()->isSecretary())<li>
-                        <a href="{{ route('bulletins') }}" class="{{ request()->routeIs('bulletins') ? 'active' : '' }}">
-                            {{ __('Bulletins') }}
-                        </a>
-                    </li>@endif
+                    @if(auth()->user()->isAdmin() || auth()->user()->isSecretary())
+                        <li>
+                            <a href="{{ route('class-grades') }}" class="{{ request()->routeIs('class-grades') ? 'active' : '' }}">
+                                {{ __('Class Grades') }}
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('bulletins') }}" class="{{ request()->routeIs('bulletins') ? 'active' : '' }}">
+                                {{ __('Bulletins') }}
+                            </a>
+                        </li>
+                    @endif
+                    
+                    {{-- Attendance Section (if enabled) --}}
+                    @php
+                        $attendanceEnabled = \App\Models\SchoolSetting::first()?->attendance_enabled ?? false;
+                    @endphp
+                    
+                    @if($attendanceEnabled)
+                        <li class="menu-title mt-4">
+                            <span>{{ __('Attendance') }}</span>
+                        </li>
+                        
+                        <li>
+                            <a href="{{ route('attendance') }}" class="{{ request()->routeIs('attendance') ? 'active' : '' }}">
+                                
+                                {{ __('Mark Attendance') }}
+                            </a>
+                        </li>
+                        
+                        @if(auth()->user()->isAdmin() || auth()->user()->isSecretary())
+                            <li>
+                                <a href="{{ route('attendance.justifications') }}" class="{{ request()->routeIs('attendance.justifications') ? 'active' : '' }}">
+                                    
+                                    {{ __('Justifications') }}
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ route('admin.attendance-reports') }}" class="{{ request()->routeIs('admin.attendance-reports') ? 'active' : '' }}">
+                                    
+                                    {{ __('Attendance Reports') }}
+                                </a>
+                            </li>
+                        @endif
+                    @endif
                 </ul>
             </aside>
         </div>
