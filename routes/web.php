@@ -97,3 +97,8 @@ Route::get('/admin/financial-reports', \App\Livewire\Admin\FinancialReports::cla
 
     // Profile route (all authenticated users)
     Route::get('/profile', App\Livewire\Profile::class)->name('profile');
+
+    // Series route (admin only)
+    Route::get('/admin/series', App\Livewire\Admin\Series::class)
+        ->middleware('role:admin')
+        ->name('admin.series');

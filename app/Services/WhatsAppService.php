@@ -2,105 +2,109 @@
 
 namespace App\Services;
 
-use App\Models\Attendance;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class WhatsAppService
 {
-    /**
-     * Send attendance notification to guardian
-     */
-    public function sendAttendanceNotification(Attendance $attendance): bool
+    protected string $apiUrl;
+    protected string $apiToken;
+    protected bool $enabled;
+
+    public function __construct()
     {
-        // Check if WhatsApp is enabled
-        if (!config('services.whatsapp.enabled')) {
-            Log::info('WhatsApp disabled, skipping notification');
+        $this->apiUrl = config('services.whatsapp.api_url');
+        $this->apiToken = config('services.whatsapp.api_token');
+        $this->enabled = config('services.whatsapp.enabled', false);
+    }
+
+    /**
+     * Send a WhatsApp message
+     */
+    public function sendMessage(string $phone, string $message): bool
+    {
+        if (!$this->enabled) {
+            Log::info('WhatsApp disabled. Message not sent.', [
+                'phone' => $phone,
+                'message' => $message
+            ]);
             return false;
         }
-
-        $student = $attendance->student;
-        $guardianPhone = $student->guardian_phone;
-
-        // Validate phone number
-        if (empty($guardianPhone)) {
-            Log::warning("No guardian phone for student {$student->id}");
-            return false;
-        }
-
-        // Format phone number for WhatsApp (must include country code)
-        $phoneNumber = $this->formatPhoneNumber($guardianPhone);
-
-        // Build message
-        $message = $this->buildMessage($attendance);
 
         try {
-            // Send via Twilio WhatsApp API
-            $response = Http::withBasicAuth(
-                config('services.whatsapp.account_sid'),
-                config('services.whatsapp.auth_token')
-            )->asForm()->post(config('services.whatsapp.api_url'), [
-                'From' => config('services.whatsapp.from_number'),
-                'To' => 'whatsapp:' . $phoneNumber,
-                'Body' => $message,
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiToken,
+                'Content-Type' => 'application/json',
+            ])->post($this->apiUrl . '/send-message', [
+                'phone' => $this->formatPhone($phone),
+                'message' => $message,
             ]);
 
             if ($response->successful()) {
-                Log::info("WhatsApp sent to {$phoneNumber} for student {$student->id}");
+                Log::info('WhatsApp message sent successfully', [
+                    'phone' => $phone
+                ]);
                 return true;
             }
 
-            Log::error("WhatsApp failed: " . $response->body());
+            Log::error('WhatsApp API error', [
+                'phone' => $phone,
+                'status' => $response->status(),
+                'response' => $response->body()
+            ]);
             return false;
-
         } catch (\Exception $e) {
-            Log::error("WhatsApp exception: " . $e->getMessage());
+            Log::error('WhatsApp exception', [
+                'phone' => $phone,
+                'error' => $e->getMessage()
+            ]);
             return false;
         }
     }
 
     /**
-     * Format phone number for WhatsApp
+     * Format phone number to international format
      */
-    private function formatPhoneNumber(string $phone): string
+    protected function formatPhone(string $phone): string
     {
-        // Remove spaces, dashes, parentheses
-        $phone = preg_replace('/[^0-9+]/', '', $phone);
+        // Remove all non-numeric characters
+        $phone = preg_replace('/[^0-9]/', '', $phone);
         
-        // If doesn't start with +, assume Mauritania (+222)
-        if (!str_starts_with($phone, '+')) {
-            $phone = '+222' . $phone;
+        // If starts with 222 (Mauritania), add country code
+        if (substr($phone, 0, 3) === '222') {
+            return $phone;
         }
         
-        return $phone;
+        // If starts with 0, replace with 222
+        if (substr($phone, 0, 1) === '0') {
+            return '222' . substr($phone, 1);
+        }
+        
+        // Add 222 if no country code
+        return '222' . $phone;
     }
 
     /**
-     * Build notification message
+     * Test the API connection
      */
-    private function buildMessage(Attendance $attendance): string
+    public function testConnection(): array
     {
-        $student = $attendance->student;
-        $school = \App\Models\SchoolSetting::first();
-        
-        $statusText = match($attendance->status) {
-            'absent' => 'ABSENT(E)',
-            'late' => 'EN RETARD',
-            'left_early' => 'PARTI(E) AVANT LA FIN',
-            default => strtoupper($attendance->getStatusLabel()),
-        };
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiToken,
+            ])->get($this->apiUrl . '/status');
 
-        $message = "🏫 " . ($school->name_fr ?? 'École') . "\n\n";
-        $message .= "Bonjour " . $student->guardian_name . ",\n\n";
-        $message .= "Votre enfant " . $student->full_name;
-        $message .= " - Classe " . ($student->class->name ?? '-') . "\n";
-        $message .= "a été marqué(e) " . $statusText . "\n";
-        $message .= "le " . $attendance->date->format('d/m/Y') . ".\n\n";
-        
-        if ($school->phone) {
-            $message .= "Pour toute question, contactez-nous au " . $school->phone . ".";
+            return [
+                'success' => $response->successful(),
+                'status' => $response->status(),
+                'message' => $response->successful() ? 'Connection successful' : 'Connection failed',
+                'data' => $response->json()
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => $e->getMessage()
+            ];
         }
-
-        return $message;
     }
 }

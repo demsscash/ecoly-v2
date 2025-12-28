@@ -42,11 +42,9 @@ return [
     */
 
     'whatsapp' => [
+        'api_url' => env('WHATSAPP_API_URL', 'https://wasenderapi.com/api'),
+        'api_token' => env('WHATSAPP_API_TOKEN'),
         'enabled' => env('WHATSAPP_ENABLED', false),
-        'api_url' => env('WHATSAPP_API_URL'),
-        'account_sid' => env('WHATSAPP_ACCOUNT_SID'),
-        'auth_token' => env('WHATSAPP_AUTH_TOKEN'),
-        'from_number' => env('WHATSAPP_FROM_NUMBER'),
     ],
 
 ];

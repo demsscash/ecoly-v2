@@ -2,111 +2,175 @@
 
 namespace App\Livewire\Admin;
 
+use App\Models\ClassSubject;
 use App\Models\SchoolClass;
-use App\Models\SchoolYear;
 use App\Models\Subject;
 use App\Models\User;
 use Livewire\Component;
+use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 
 #[Layout('layouts.app')]
-#[Title('Matières par classe - Ecoly')]
+#[Title('Affectation Matières - Ecoly')]
 class ClassSubjects extends Component
 {
-    public ?int $selectedClassId = null;
-    public ?SchoolClass $selectedClass = null;
-    
-    public bool $showAddModal = false;
-    public ?int $newSubjectId = null;
-    public ?int $newGradeBase = null;
+    use WithPagination;
 
-    public function selectClass(int $classId): void
+    public bool $showModal = false;
+    public ?int $editingAssignmentId = null;
+
+    public ?int $class_id = null;
+    public ?int $subject_id = null;
+    public ?int $teacher_id = null;
+    public int $max_grade = 20;
+    public int $coefficient = 1;
+
+    public ?int $filterClass = null;
+
+    public function openCreateModal(): void
     {
-        $this->selectedClassId = $classId;
-        $this->selectedClass = SchoolClass::find($classId);
+        $this->reset(['class_id', 'subject_id', 'teacher_id', 'max_grade', 'coefficient', 'editingAssignmentId']);
+        $this->max_grade = 20;
+        $this->coefficient = 1;
+        $this->showModal = true;
     }
 
-    public function addSubject(): void
+    public function openEditModal(int $assignmentId): void
     {
-        $this->validate([
-            'newSubjectId' => 'required|exists:subjects,id',
-        ]);
+        $assignment = ClassSubject::findOrFail($assignmentId);
 
-        $exists = $this->selectedClass->subjects()->where('subjects.id', $this->newSubjectId)->exists();
+        $this->editingAssignmentId = $assignment->id;
+        $this->class_id = $assignment->class_id;
+        $this->subject_id = $assignment->subject_id;
+        $this->teacher_id = $assignment->teacher_id;
+        $this->max_grade = $assignment->max_grade ?? 20;
+        $this->coefficient = $assignment->coefficient ?? 1;
+
+        $this->showModal = true;
+    }
+
+    public function updatedClassId(): void
+    {
+        if ($this->class_id) {
+            $class = SchoolClass::find($this->class_id);
+            
+            if ($class && ($class->isCollege() || $class->isLycee())) {
+                // College/Lycee: fixed /20
+                $this->max_grade = 20;
+            }
+        }
+    }
+
+    public function save(): void
+    {
+        $rules = [
+            'class_id' => 'required|exists:classes,id',
+            'subject_id' => 'required|exists:subjects,id',
+            'teacher_id' => 'nullable|exists:users,id',
+        ];
+
+        $class = SchoolClass::find($this->class_id);
+
+        // Max grade validation based on class type
+        if ($class && ($class->isCollege() || $class->isLycee())) {
+            // College/Lycee: always 20
+            $this->max_grade = 20;
+            $rules['coefficient'] = 'required|integer|min:1|max:10';
+        } else {
+            // Fondamental: custom max_grade, coefficient always 1
+            $rules['max_grade'] = 'required|integer|min:1|max:100';
+            $this->coefficient = 1;
+        }
+
+        $this->validate($rules);
+
+        // Check if assignment already exists (exclude current record in edit mode)
+        $query = ClassSubject::where('class_id', $this->class_id)
+            ->where('subject_id', $this->subject_id);
         
-        if ($exists) {
-            $this->dispatch('toast', message: __('Subject already assigned to this class.'), type: 'error');
+        if ($this->editingAssignmentId) {
+            $query->where('id', '!=', $this->editingAssignmentId);
+        }
+        
+        if ($query->exists()) {
+            $this->dispatch('toast',
+                message: __('This subject is already assigned to this class.'),
+                type: 'error'
+            );
             return;
         }
 
-        $this->selectedClass->subjects()->attach($this->newSubjectId, [
-            'grade_base' => $this->newGradeBase,
-        ]);
+        $data = [
+            'class_id' => $this->class_id,
+            'subject_id' => $this->subject_id,
+            'teacher_id' => $this->teacher_id,
+            'max_grade' => $this->max_grade,
+            'coefficient' => $this->coefficient,
+        ];
 
-        $this->showAddModal = false;
-        $this->reset(['newSubjectId', 'newGradeBase']);
-        $this->dispatch('toast', message: __('Subject assigned successfully.'), type: 'success');
+        if ($this->editingAssignmentId) {
+            // Update
+            $assignment = ClassSubject::findOrFail($this->editingAssignmentId);
+            $assignment->update($data);
+
+            $message = __('Assignment updated successfully.');
+        } else {
+            // Create
+            ClassSubject::create($data);
+
+            $message = __('Subject assigned successfully.');
+        }
+
+        $this->showModal = false;
+        $this->reset(['class_id', 'subject_id', 'teacher_id', 'max_grade', 'coefficient', 'editingAssignmentId']);
+
+        $this->dispatch('toast', message: $message, type: 'success');
     }
 
-    public function updateGradeBase(int $subjectId, $value): void
+    public function delete(int $assignmentId): void
     {
-        $this->selectedClass->subjects()->updateExistingPivot($subjectId, [
-            'grade_base' => $value ?: null,
-        ]);
-        $this->dispatch('toast', message: __('Grade base updated successfully.'), type: 'success');
-    }
+        $assignment = ClassSubject::findOrFail($assignmentId);
 
-    public function updateTeacher(int $subjectId, $value): void
-    {
-        $this->selectedClass->subjects()->updateExistingPivot($subjectId, [
-            'teacher_id' => $value ?: null,
-        ]);
-        $this->dispatch('toast', message: __('Teacher updated successfully.'), type: 'success');
-    }
+        // Check if there are grades for this assignment
+        if ($assignment->grades()->count() > 0) {
+            $this->dispatch('toast',
+                message: __('Cannot delete assignment that has grades.'),
+                type: 'error'
+            );
+            return;
+        }
 
-    public function removeSubject(int $subjectId): void
-    {
-        $this->selectedClass->subjects()->detach($subjectId);
-        $this->dispatch('toast', message: __('Subject removed from class.'), type: 'success');
+        $assignment->delete();
+
+        $this->dispatch('toast', message: __('Assignment deleted successfully.'), type: 'success');
     }
 
     public function render()
     {
-        $schoolYear = SchoolYear::where('is_active', true)->first();
+        $query = ClassSubject::with(['class.serie', 'subject', 'teacher']);
 
-        $classes = SchoolClass::when($schoolYear, fn($q) => $q->where('school_year_id', $schoolYear->id))
-            ->where('is_active', true)
-            ->with('subjects')
-            ->orderBy('level')
-            ->orderBy('name')
-            ->get();
-
-        $classSubjects = collect();
-        $availableSubjects = collect();
-        $teachers = collect();
-
-        if ($this->selectedClassId) {
-            $this->selectedClass = SchoolClass::find($this->selectedClassId);
-            $classSubjects = $this->selectedClass->subjects()->orderBy('name_fr')->get();
-            
-            $assignedIds = $classSubjects->pluck('id');
-            $availableSubjects = Subject::where('is_active', true)
-                ->whereNotIn('id', $assignedIds)
-                ->orderBy('name_fr')
-                ->get();
-
-            $teachers = User::where('role', 'teacher')
-                ->where('is_active', true)
-                ->orderBy('first_name')
-                ->orderBy('last_name')
-                ->get();
+        if ($this->filterClass) {
+            $query->where('class_id', $this->filterClass);
         }
 
+        $assignments = $query->paginate(15);
+
+        $classes = SchoolClass::with('serie')
+            ->orderBy('level')
+            ->orderBy('section')
+            ->get();
+
+        $subjects = Subject::orderBy('name_fr')->get();
+
+        $teachers = User::where('role', 'teacher')
+            ->orderBy('first_name')
+            ->get();
+
         return view('livewire.admin.class-subjects', [
+            'assignments' => $assignments,
             'classes' => $classes,
-            'classSubjects' => $classSubjects,
-            'availableSubjects' => $availableSubjects,
+            'subjects' => $subjects,
             'teachers' => $teachers,
         ]);
     }
