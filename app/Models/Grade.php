@@ -78,4 +78,12 @@ class Grade extends Model
         
         return ($this->grade / $this->max_grade) * 20;
     }
+
+    /**
+     * Get the subject for this grade
+     */
+    public function subject(): BelongsTo
+    {
+        return $this->belongsTo(Subject::class);
+    }
 }

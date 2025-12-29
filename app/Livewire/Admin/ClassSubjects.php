@@ -148,7 +148,7 @@ class ClassSubjects extends Component
 
     public function render()
     {
-        $query = ClassSubject::with(['class.serie', 'subject', 'teacher']);
+        $query = ClassSubject::with(['class.series', 'subject', 'teacher']);
 
         if ($this->filterClass) {
             $query->where('class_id', $this->filterClass);
@@ -156,7 +156,7 @@ class ClassSubjects extends Component
 
         $assignments = $query->paginate(15);
 
-        $classes = SchoolClass::with('serie')
+        $classes = SchoolClass::with('series')
             ->orderBy('level')
             ->orderBy('section')
             ->get();

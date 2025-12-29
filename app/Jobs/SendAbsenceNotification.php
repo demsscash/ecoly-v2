@@ -11,7 +11,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class SendAttendanceNotification implements ShouldQueue
+class SendAbsenceNotification implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -30,24 +30,10 @@ class SendAttendanceNotification implements ShouldQueue
      */
     public function handle(WhatsAppService $whatsapp): void
     {
-        // Only send for absences
-        if ($this->attendance->status !== 'absent') {
-            return;
-        }
-
         $student = $this->attendance->student;
-        
-        // Check if student has guardian phone
-        if (!$student->guardian_phone && !$student->guardian_phone_2) {
-            Log::info('No guardian phone for absence notification', [
-                'student_id' => $student->id
-            ]);
-            return;
-        }
-
         $date = $this->attendance->date->format('d/m/Y');
         
-        // Build message
+        // Build message in French
         $message = $this->buildMessage($student, $date);
         
         // Send to primary phone
@@ -74,7 +60,7 @@ class SendAttendanceNotification implements ShouldQueue
      */
     protected function buildMessage($student, string $date): string
     {
-        $schoolName = \App\Models\SchoolSetting::first()?->name_fr ?? 'École';
+        $schoolName = \App\Models\SchoolSetting::first()?->name_fr ?? 'Ecole';
         
         return sprintf(
             "🔔 *Notification d'Absence*\n\n" .

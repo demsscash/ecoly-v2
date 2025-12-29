@@ -32,23 +32,34 @@ class WhatsAppService
         }
 
         try {
+            $formattedPhone = $this->formatPhone($phone);
+
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->apiToken,
                 'Content-Type' => 'application/json',
             ])->post($this->apiUrl . '/send-message', [
-                'phone' => $this->formatPhone($phone),
-                'message' => $message,
+                'to' => $formattedPhone,
+                'text' => $message,
             ]);
 
             if ($response->successful()) {
                 Log::info('WhatsApp message sent successfully', [
-                    'phone' => $phone
+                    'to' => $formattedPhone
                 ]);
                 return true;
             }
 
+            // Handle rate limit (free trial)
+            if ($response->status() === 429) {
+                Log::warning('WhatsApp rate limit reached', [
+                    'to' => $formattedPhone,
+                    'response' => $response->json()
+                ]);
+                return false;
+            }
+
             Log::error('WhatsApp API error', [
-                'phone' => $phone,
+                'to' => $formattedPhone,
                 'status' => $response->status(),
                 'response' => $response->body()
             ]);
@@ -69,19 +80,24 @@ class WhatsAppService
     {
         // Remove all non-numeric characters
         $phone = preg_replace('/[^0-9]/', '', $phone);
-        
-        // If starts with 222 (Mauritania), add country code
-        if (substr($phone, 0, 3) === '222') {
-            return $phone;
+
+        // Add + prefix for international format
+        if (substr($phone, 0, 1) !== '+') {
+            // If starts with 222 (Mauritania), add +
+            if (substr($phone, 0, 3) === '222') {
+                return '+' . $phone;
+            }
+
+            // If starts with 0, replace with +222
+            if (substr($phone, 0, 1) === '0') {
+                return '+222' . substr($phone, 1);
+            }
+
+            // Add +222 if no country code
+            return '+222' . $phone;
         }
-        
-        // If starts with 0, replace with 222
-        if (substr($phone, 0, 1) === '0') {
-            return '222' . substr($phone, 1);
-        }
-        
-        // Add 222 if no country code
-        return '222' . $phone;
+
+        return $phone;
     }
 
     /**
@@ -92,7 +108,7 @@ class WhatsAppService
         try {
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->apiToken,
-            ])->get($this->apiUrl . '/status');
+            ])->get($this->apiUrl . '/account');
 
             return [
                 'success' => $response->successful(),

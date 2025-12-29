@@ -555,5 +555,10 @@
     "College/Lycée: All grades are on /20 with coefficients for weighted averages.": "Collège/Lycée : Toutes les notes sont sur /20 avec coefficients pour moyennes pondérées.",
     "Start by assigning subjects to classes.": "Commencez par affecter des matières aux classes.",
     "This subject is already assigned to this class.": "Cette matière est déjà affectée à cette classe.",
-    "Cannot delete assignment that has grades.": "Impossible de supprimer une affectation qui contient des notes."
+    "Cannot delete assignment that has grades.": "Impossible de supprimer une affectation qui contient des notes.",
+    "Absence Notification": "Notification d'Absence",
+    "Dear parent": "Cher parent",
+    "We inform you that your child was absent on": "Nous vous informons que votre enfant était absent(e) le",
+    "If this absence was planned, please provide justification": "Si cette absence était prévue, veuillez nous fournir une justification",
+    "Best regards": "Cordialement"
 }

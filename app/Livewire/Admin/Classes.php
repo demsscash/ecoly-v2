@@ -125,7 +125,8 @@ class Classes extends Component
         $class = SchoolClass::findOrFail($classId);
 
         if ($class->students()->count() > 0) {
-            $this->dispatch('toast',
+            $this->dispatch(
+                'toast',
                 message: __('Cannot delete class that has students.'),
                 type: 'error'
             );
@@ -142,7 +143,7 @@ class Classes extends Component
     private function generateClassName(): string
     {
         $levelSuffix = $this->level === 1 ? 'ère' : 'ème';
-        
+
         if ($this->level_type === 'fondamental') {
             // Format: "1ère 1", "2ème 2", etc.
             $name = "{$this->level}{$levelSuffix}";
@@ -151,7 +152,7 @@ class Classes extends Component
             }
             return $name;
         }
-        
+
         if ($this->level_type === 'college') {
             // Format: "1ère Collège 1", "3ème Collège 2", etc.
             $name = "{$this->level}{$levelSuffix} Collège";
@@ -160,12 +161,12 @@ class Classes extends Component
             }
             return $name;
         }
-        
+
         // Lycee
         // Format: "7ème C1", "6ème D2", "5ème LIT1"
         $serie = Serie::find($this->serie_id);
         $serieCode = $serie ? $serie->code : '';
-        
+
         return "{$this->level}{$levelSuffix} {$serieCode}{$this->class_number}";
     }
 
@@ -179,7 +180,7 @@ class Classes extends Component
 
     public function render()
     {
-        $classes = SchoolClass::with(['schoolYear', 'serie'])
+        $classes = SchoolClass::with(['schoolYear', 'series'])
             ->withCount('students')
             ->where('school_year_id', $this->school_year_id)
             ->orderBy('level')
