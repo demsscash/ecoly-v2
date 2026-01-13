@@ -96,6 +96,17 @@ class Classes extends Component
         // Generate class name automatically
         $name = $this->generateClassName();
 
+        // Check if class name already exists for this school year
+        $exists = SchoolClass::where('name', $name)
+            ->where('school_year_id', $this->school_year_id)
+            ->when($this->editingClassId, fn($q) => $q->where('id', '!=', $this->editingClassId))
+            ->exists();
+
+        if ($exists) {
+            $this->dispatch('toast', message: __('A class with this name already exists for this school year.'), type: 'error');
+            return;
+        }
+
         $data = [
             'name' => $name,
             'level' => $this->level,

@@ -102,3 +102,17 @@ Route::get('/admin/financial-reports', \App\Livewire\Admin\FinancialReports::cla
     Route::get('/admin/series', App\Livewire\Admin\Series::class)
         ->middleware('role:admin')
         ->name('admin.series');
+
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
+    Route::get('/timetables', \App\Livewire\Admin\Timetables::class)->name('admin.timetables');
+});
+
+// Timetable view (all authenticated users)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/timetable', \App\Livewire\TimetableView::class)->name('timetable');
+});
+
+// Attendance by slot
+Route::middleware(['auth'])->group(function () {
+    Route::get('/attendance/by-slot', \App\Livewire\AttendanceBySlot::class)->name('attendance.by-slot');
+});

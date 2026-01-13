@@ -70,4 +70,15 @@ class Attendance extends Model
     {
         return $this->belongsTo(User::class, 'marked_by');
     }
+
+    public function timeSlot(): BelongsTo
+    {
+        return $this->belongsTo(TimeSlot::class);
+    }
+
+    public function timetable(): BelongsTo
+    {
+        return $this->belongsTo(Timetable::class);
+    }
+
 }
