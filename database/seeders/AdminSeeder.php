@@ -19,7 +19,7 @@ class AdminSeeder extends Seeder
             'last_name' => 'Ecoly',
             'email' => 'admin@ecoly.mr',
             'password' => Hash::make('password'),
-            'role' => UserRole::ADMIN,
+            'role' => UserRole::Admin,
             'phone' => '+222 00 00 00 00',
             'is_active' => true,
         ]);

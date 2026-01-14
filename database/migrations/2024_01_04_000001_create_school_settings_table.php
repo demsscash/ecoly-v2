@@ -10,9 +10,9 @@ return new class extends Migration
     {
         Schema::create('school_settings', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->nullable();
+            $table->string('name_fr')->nullable();
             $table->string('name_ar')->nullable();
-            $table->string('address')->nullable();
+            $table->string('address_fr')->nullable();
             $table->string('address_ar')->nullable();
             $table->string('phone')->nullable();
             $table->string('email')->nullable();

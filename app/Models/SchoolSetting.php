@@ -24,6 +24,10 @@ class SchoolSetting extends Model
         'signature_path',
         'director_name_fr',
         'director_name_ar',
+        'attendance_enabled',
+        'whatsapp_notifications_enabled',
+        'whatsapp_phone',
+        'whatsapp_api_key',
     ];
 
     /**
