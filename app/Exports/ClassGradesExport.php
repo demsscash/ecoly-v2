@@ -7,6 +7,7 @@ use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\Subject;
 use App\Models\Trimester;
+use App\Services\GradeCalculationService;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
@@ -18,13 +19,17 @@ class ClassGradesExport implements FromArray, WithHeadings, WithStyles, WithTitl
 {
     protected int $classId;
     protected int $trimesterId;
+    protected GradeCalculationService $gradeCalc;
     protected array $subjects = [];
 
-    public function __construct(int $classId, int $trimesterId)
+    public function __construct(int $classId, int $trimesterId, GradeCalculationService $gradeCalc = null)
     {
         $this->classId = $classId;
         $this->trimesterId = $trimesterId;
-        
+
+        // Use injected service or instantiate
+        $this->gradeCalc = $gradeCalc ?? app(GradeCalculationService::class);
+
         $this->subjects = Subject::whereHas('classes', function ($q) use ($classId) {
             $q->where('classes.id', $classId);
         })->orderBy('name_fr')->get()->toArray();
@@ -33,15 +38,15 @@ class ClassGradesExport implements FromArray, WithHeadings, WithStyles, WithTitl
     public function headings(): array
     {
         $headings = ['Rang', 'Matricule', 'Nom', 'Prénom'];
-        
+
         foreach ($this->subjects as $subject) {
             $headings[] = $subject['code'] . ' (Ctrl)';
             $headings[] = $subject['code'] . ' (Exam)';
             $headings[] = $subject['code'] . ' (Moy)';
         }
-        
+
         $headings[] = 'Moyenne Générale';
-        
+
         return $headings;
     }
 
@@ -71,9 +76,10 @@ class ClassGradesExport implements FromArray, WithHeadings, WithStyles, WithTitl
                     ->where('trimester_id', $this->trimesterId)
                     ->first();
 
-                $coef = Subject::find($subject['id'])->classes()
-                    ->where('classes.id', $this->classId)
-                    ->first()?->pivot?->coefficient ?? $subject['coefficient'];
+                $coef = $this->gradeCalc->getSubjectCoefficient(
+                    Subject::find($subject['id']),
+                    $this->classId
+                );
 
                 $row[] = $grade?->control_grade ?? '';
                 $row[] = $grade?->exam_grade ?? '';

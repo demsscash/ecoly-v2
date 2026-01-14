@@ -4,25 +4,32 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Enums\GradeType;
 
 class Grade extends Model
 {
     protected $fillable = [
         'student_id',
-        'class_subject_id',
+        'subject_id',
+        'class_id',
         'trimester_id',
-        'type',
-        'control_number',    // NEW: for multiple controls (default 1)
-        'grade',
-        'max_grade',
+        'control_grade',
+        'exam_grade',
+        'average',
+        'appreciation',
+        'entered_by',
+        'entered_at',
+        'is_validated',
+        'validated_by',
+        'validated_at',
     ];
 
     protected $casts = [
-        'type' => GradeType::class,
-        'grade' => 'float',
-        'max_grade' => 'integer',
-        'control_number' => 'integer',
+        'control_grade' => 'decimal:2',
+        'exam_grade' => 'decimal:2',
+        'average' => 'decimal:2',
+        'entered_at' => 'datetime',
+        'is_validated' => 'boolean',
+        'validated_at' => 'datetime',
     ];
 
     /**
@@ -34,11 +41,19 @@ class Grade extends Model
     }
 
     /**
-     * Get the class subject
+     * Get the subject
      */
-    public function classSubject(): BelongsTo
+    public function subject(): BelongsTo
     {
-        return $this->belongsTo(ClassSubject::class);
+        return $this->belongsTo(Subject::class);
+    }
+
+    /**
+     * Get the class
+     */
+    public function class(): BelongsTo
+    {
+        return $this->belongsTo(SchoolClass::class, 'class_id');
     }
 
     /**
@@ -49,41 +64,64 @@ class Grade extends Model
         return $this->belongsTo(Trimester::class);
     }
 
-    // ========== NEW HELPER METHODS (NO REGRESSION) ==========
-
     /**
-     * Check if this is a control grade
+     * Get the user who entered the grade
      */
-    public function isControl(): bool
+    public function enteredBy(): BelongsTo
     {
-        return $this->type === GradeType::CONTROL;
+        return $this->belongsTo(\App\Models\User::class, 'entered_by');
     }
 
     /**
-     * Check if this is an exam grade
+     * Get the user who validated the grade
      */
-    public function isExam(): bool
+    public function validatedBy(): BelongsTo
     {
-        return $this->type === GradeType::EXAM;
+        return $this->belongsTo(\App\Models\User::class, 'validated_by');
+    }
+
+    // ========== HELPER METHODS ==========
+
+    /**
+     * Check if this grade has a control grade
+     */
+    public function hasControlGrade(): bool
+    {
+        return $this->control_grade !== null;
+    }
+
+    /**
+     * Check if this grade has an exam grade
+     */
+    public function hasExamGrade(): bool
+    {
+        return $this->exam_grade !== null;
+    }
+
+    /**
+     * Check if the grade is complete (has average)
+     */
+    public function isComplete(): bool
+    {
+        return $this->average !== null;
     }
 
     /**
      * Get normalized grade (/20 for comparison)
+     * Uses the average if available, otherwise prioritizes control over exam
      */
     public function getNormalizedGrade(): float
     {
-        if ($this->max_grade == 0) {
+        if ($this->average !== null) {
+            return (float) $this->average;
+        }
+
+        $grade = $this->control_grade ?? $this->exam_grade;
+        if ($grade === null) {
             return 0;
         }
-        
-        return ($this->grade / $this->max_grade) * 20;
-    }
 
-    /**
-     * Get the subject for this grade
-     */
-    public function subject(): BelongsTo
-    {
-        return $this->belongsTo(Subject::class);
+        // Assume grades are already on /20 scale
+        return (float) $grade;
     }
 }

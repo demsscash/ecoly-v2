@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('role')->default('teacher');
             $table->string('phone')->nullable();
             $table->boolean('is_active')->default(true);
-            $table->integer('failed_login_attempts')->default(0);
+            $table->integer('login_attempts')->default(0);
             $table->timestamp('locked_until')->nullable();
             $table->timestamp('last_login_at')->nullable();
             $table->rememberToken();

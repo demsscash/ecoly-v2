@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Notifications\PasswordChangedNotification;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\Attributes\Layout;
@@ -39,8 +40,8 @@ class Profile extends Component
         $this->last_name = $user->last_name;
         $this->email = $user->email;
         $this->phone = $user->phone ?? '';
-        $this->current_photo_url = $user->photo_path 
-            ? Storage::url($user->photo_path) 
+        $this->current_photo_url = $user->photo_path
+            ? Storage::url($user->photo_path)
             : 'https://ui-avatars.com/api/?name=' . urlencode($user->first_name . ' ' . $user->last_name);
     }
 
@@ -55,14 +56,14 @@ class Profile extends Component
         ]);
 
         $user = auth()->user();
-        
+
         // Handle photo upload
         if ($this->photo) {
             // Delete old photo if exists
             if ($user->photo_path) {
                 Storage::disk('public')->delete($user->photo_path);
             }
-            
+
             $photoPath = $this->photo->store('profile-photos', 'public');
             $user->photo_path = $photoPath;
             $this->current_photo_url = Storage::url($photoPath);
@@ -82,7 +83,7 @@ class Profile extends Component
         }
 
         $this->photo = null;
-        
+
         $this->dispatch('toast', message: __('Profile updated successfully.'), type: 'success');
     }
 
@@ -106,6 +107,9 @@ class Profile extends Component
             'password' => Hash::make($this->new_password),
         ]);
 
+        // Send notification to user
+        $user->notify(new PasswordChangedNotification());
+
         // Reset fields
         $this->reset(['current_password', 'new_password', 'new_password_confirmation']);
 
@@ -115,14 +119,14 @@ class Profile extends Component
     public function removePhoto(): void
     {
         $user = auth()->user();
-        
+
         if ($user->photo_path) {
             Storage::disk('public')->delete($user->photo_path);
             $user->photo_path = null;
             $user->save();
-            
+
             $this->current_photo_url = 'https://ui-avatars.com/api/?name=' . urlencode($user->first_name . ' ' . $user->last_name);
-            
+
             $this->dispatch('toast', message: __('Photo removed successfully.'), type: 'success');
         }
     }

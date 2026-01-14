@@ -2,30 +2,31 @@
 
 namespace App\Services;
 
-use App\Models\Grade;
-use App\Models\GradingConfig;
 use App\Models\SchoolSetting;
 use App\Models\Student;
 use App\Models\Trimester;
 
 class BulletinService
 {
+    protected GradeCalculationService $gradeCalc;
+
+    public function __construct(GradeCalculationService $gradeCalc)
+    {
+        $this->gradeCalc = $gradeCalc;
+    }
+
     /**
      * Get bulletin data for a student and trimester
      */
     public function getBulletinData(Student $student, Trimester $trimester): array
     {
         $school = SchoolSetting::instance();
-        $config = GradingConfig::instance();
-        
+
         $subjects = $student->class->subjects()
             ->orderBy('name_fr')
             ->get();
 
-        $grades = Grade::where('student_id', $student->id)
-            ->where('trimester_id', $trimester->id)
-            ->get()
-            ->keyBy('subject_id');
+        $grades = $this->gradeCalc->getStudentGradesBySubject($student, $trimester->id);
 
         $subjectsData = [];
         $totalPoints = 0;
@@ -33,8 +34,8 @@ class BulletinService
 
         foreach ($subjects as $subject) {
             $grade = $grades->get($subject->id);
-            $gradeBase = $subject->pivot->grade_base ?? $student->class->grade_base ?? 20;
-            
+            $gradeBase = $this->gradeCalc->getSubjectGradeBase($subject, $student->class_id, $student->class);
+
             $subjectsData[] = [
                 'name' => $subject->name_fr,
                 'name_ar' => $subject->name_ar,
@@ -58,10 +59,10 @@ class BulletinService
         $trimesterAverage = $totalBase > 0 ? round(($totalPoints / $totalBase) * 20, 2) : null;
 
         // Get rank
-        $rankInfo = $this->getStudentRank($student, $trimester);
+        $rankInfo = $this->gradeCalc->getStudentRank($student, $trimester);
 
         // Get mention
-        $mention = $this->getMention($trimesterAverage, $config);
+        $mention = $this->gradeCalc->getMention($trimesterAverage);
 
         return [
             'school' => [
@@ -95,80 +96,5 @@ class BulletinService
             ],
             'generated_at' => now()->format('d/m/Y H:i'),
         ];
-    }
-
-    /**
-     * Get student rank in class for trimester
-     */
-    protected function getStudentRank(Student $student, Trimester $trimester): array
-    {
-        $classmates = Student::where('class_id', $student->class_id)
-            ->where('status', 'active')
-            ->get();
-
-        $averages = [];
-
-        foreach ($classmates as $classmate) {
-            $grades = Grade::with('subject')
-                ->where('student_id', $classmate->id)
-                ->where('trimester_id', $trimester->id)
-                ->get();
-
-            $totalPoints = 0;
-            $totalBase = 0;
-
-            foreach ($grades as $grade) {
-                if ($grade->average !== null) {
-                    $gradeBase = $grade->subject->classes()
-                        ->where('classes.id', $student->class_id)
-                        ->first()?->pivot?->grade_base ?? 20;
-                    
-                    $normalized = ($grade->average / $gradeBase) * 20;
-                    $totalPoints += $normalized;
-                    $totalBase += 20;
-                }
-            }
-
-            $averages[$classmate->id] = $totalBase > 0 ? round(($totalPoints / $totalBase) * 20, 2) : null;
-        }
-
-        $validAverages = array_filter($averages, fn($v) => $v !== null);
-        arsort($validAverages);
-
-        $rank = 1;
-        $lastAvg = null;
-        $studentRank = null;
-
-        foreach ($validAverages as $studentId => $avg) {
-            if ($avg !== $lastAvg) {
-                $rank = array_search($studentId, array_keys($validAverages)) + 1;
-                $lastAvg = $avg;
-            }
-            if ($studentId === $student->id) {
-                $studentRank = $rank;
-                break;
-            }
-        }
-
-        return [
-            'rank' => $studentRank,
-            'total' => count($validAverages),
-        ];
-    }
-
-    /**
-     * Get mention based on average
-     */
-    protected function getMention(?float $average, GradingConfig $config): ?string
-    {
-        if ($average === null) return null;
-
-        if ($average >= $config->excellent_threshold) return 'Excellent';
-        if ($average >= $config->very_good_threshold) return 'Très Bien';
-        if ($average >= $config->good_threshold) return 'Bien';
-        if ($average >= $config->fairly_good_threshold) return 'Assez Bien';
-        if ($average >= $config->pass_threshold) return 'Passable';
-        
-        return 'Insuffisant';
     }
 }

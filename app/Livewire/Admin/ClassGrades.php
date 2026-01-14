@@ -8,7 +8,7 @@ use App\Models\SchoolYear;
 use App\Models\Student;
 use App\Models\Subject;
 use App\Models\Trimester;
-use App\Models\GradingConfig;
+use App\Services\GradeCalculationService;
 use App\Exports\ClassGradesExport;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
@@ -24,10 +24,17 @@ class ClassGrades extends Component
     public bool $showHistory = false;
     public ?int $historyGradeId = null;
 
+    protected GradeCalculationService $gradeCalc;
+
+    public function boot(GradeCalculationService $gradeCalc): void
+    {
+        $this->gradeCalc = $gradeCalc;
+    }
+
     public function mount(): void
     {
         $schoolYear = SchoolYear::where('is_active', true)->first();
-        
+
         if ($schoolYear) {
             $firstClass = SchoolClass::where('school_year_id', $schoolYear->id)
                 ->where('is_active', true)
@@ -37,163 +44,35 @@ class ClassGrades extends Component
 
             $trimester = Trimester::where('school_year_id', $schoolYear->id)
                 ->where('status', 'open')
-                ->first() 
+                ->first()
                 ?? Trimester::where('school_year_id', $schoolYear->id)->first();
             $this->selectedTrimesterId = $trimester?->id;
         }
     }
 
     /**
-     * Calculate student rankings for a class/trimester
+     * Get class data with rankings for a class/trimester
      */
-    public function getStudentRankings(): array
+    public function getClassData(): array
     {
         if (!$this->selectedClassId || !$this->selectedTrimesterId) {
-            return [];
-        }
-
-        $students = Student::where('class_id', $this->selectedClassId)
-            ->where('status', 'active')
-            ->get();
-
-        $subjects = Subject::whereHas('classes', function ($q) {
-            $q->where('classes.id', $this->selectedClassId);
-        })->get();
-
-        $rankings = [];
-
-        foreach ($students as $student) {
-            $totalWeighted = 0;
-            $totalCoef = 0;
-            $gradesData = [];
-            $allValidated = true;
-            $hasGrades = false;
-
-            foreach ($subjects as $subject) {
-                $grade = Grade::where('student_id', $student->id)
-                    ->where('subject_id', $subject->id)
-                    ->where('trimester_id', $this->selectedTrimesterId)
-                    ->first();
-
-                $coef = $subject->classes()
-                    ->where('classes.id', $this->selectedClassId)
-                    ->first()?->pivot?->coefficient ?? $subject->coefficient;
-
-                $gradesData[$subject->id] = [
-                    'grade_id' => $grade?->id,
-                    'control' => $grade?->control_grade,
-                    'exam' => $grade?->exam_grade,
-                    'average' => $grade?->average,
-                    'appreciation' => $grade?->appreciation,
-                    'coefficient' => $coef,
-                    'is_validated' => $grade?->is_validated ?? false,
-                ];
-
-                if ($grade?->average !== null) {
-                    $hasGrades = true;
-                    $totalWeighted += $grade->average * $coef;
-                    $totalCoef += $coef;
-                    if (!$grade->is_validated) {
-                        $allValidated = false;
-                    }
-                }
-            }
-
-            $average = $totalCoef > 0 ? round($totalWeighted / $totalCoef, 2) : null;
-
-            $rankings[] = [
-                'student' => $student,
-                'grades' => $gradesData,
-                'average' => $average,
-                'total_coef' => $totalCoef,
-                'all_validated' => $hasGrades ? $allValidated : null,
-            ];
-        }
-
-        usort($rankings, function ($a, $b) {
-            if ($a['average'] === null && $b['average'] === null) return 0;
-            if ($a['average'] === null) return 1;
-            if ($b['average'] === null) return -1;
-            return $b['average'] <=> $a['average'];
-        });
-
-        $rank = 0;
-        $lastAverage = null;
-
-        foreach ($rankings as $index => &$item) {
-            if ($item['average'] === null) {
-                $item['rank'] = '-';
-            } elseif ($item['average'] === $lastAverage) {
-                $item['rank'] = $rank;
-            } else {
-                $rank = $index + 1;
-                $item['rank'] = $rank;
-                $lastAverage = $item['average'];
-            }
-        }
-
-        return $rankings;
-    }
-
-    /**
-     * Calculate class statistics
-     */
-    public function getClassStatistics(array $rankings): array
-    {
-        $averages = array_filter(array_column($rankings, 'average'), fn($v) => $v !== null);
-
-        if (empty($averages)) {
             return [
-                'count' => count($rankings),
-                'graded' => 0,
-                'min' => null,
-                'max' => null,
-                'average' => null,
-                'passed' => 0,
-                'failed' => 0,
-                'pass_rate' => 0,
+                'rankings' => [],
+                'subjects' => collect(),
             ];
         }
 
-        $config = GradingConfig::instance();
-        $passThreshold = $config->pass_threshold ?? 10;
+        $class = SchoolClass::find($this->selectedClassId);
+        $trimester = Trimester::find($this->selectedTrimesterId);
 
-        $passed = count(array_filter($averages, fn($v) => $v >= $passThreshold));
-        $failed = count($averages) - $passed;
-
-        return [
-            'count' => count($rankings),
-            'graded' => count($averages),
-            'min' => round(min($averages), 2),
-            'max' => round(max($averages), 2),
-            'average' => round(array_sum($averages) / count($averages), 2),
-            'passed' => $passed,
-            'failed' => $failed,
-            'pass_rate' => round(($passed / count($averages)) * 100, 1),
-        ];
-    }
-
-    /**
-     * Get subject statistics
-     */
-    public function getSubjectStatistics(array $rankings, int $subjectId): array
-    {
-        $grades = [];
-        foreach ($rankings as $item) {
-            if (isset($item['grades'][$subjectId]['average']) && $item['grades'][$subjectId]['average'] !== null) {
-                $grades[] = $item['grades'][$subjectId]['average'];
-            }
+        if (!$class || !$trimester) {
+            return [
+                'rankings' => [],
+                'subjects' => collect(),
+            ];
         }
 
-        if (empty($grades)) {
-            return ['min' => null, 'max' => null, 'average' => null];
-        }
-
-        return [
-            'min' => round(min($grades), 2),
-            'max' => round(max($grades), 2),
-            'average' => round(array_sum($grades) / count($grades), 2),
-        ];
+        return $this->gradeCalc->calculateClassRankings($class, $trimester);
     }
 
     /**
@@ -265,7 +144,7 @@ class ClassGrades extends Component
         $filename = 'notes_' . str_replace(' ', '_', $class->name) . '_' . $trimester->name_fr . '_' . now()->format('Y-m-d') . '.xlsx';
 
         return Excel::download(
-            new ClassGradesExport($this->selectedClassId, $this->selectedTrimesterId),
+            new ClassGradesExport($this->selectedClassId, $this->selectedTrimesterId, $this->gradeCalc),
             $filename
         );
     }
@@ -284,19 +163,15 @@ class ClassGrades extends Component
             ->orderBy('start_date')
             ->get();
 
-        $subjects = collect();
-        if ($this->selectedClassId) {
-            $subjects = Subject::whereHas('classes', function ($q) {
-                $q->where('classes.id', $this->selectedClassId);
-            })->orderBy('name_fr')->get();
-        }
+        $classData = $this->getClassData();
+        $rankings = $classData['rankings'];
+        $subjects = $classData['subjects'];
 
-        $rankings = $this->getStudentRankings();
-        $statistics = $this->getClassStatistics($rankings);
+        $statistics = $this->gradeCalc->getClassStatistics($rankings);
 
         $subjectStats = [];
         foreach ($subjects as $subject) {
-            $subjectStats[$subject->id] = $this->getSubjectStatistics($rankings, $subject->id);
+            $subjectStats[$subject->id] = $this->gradeCalc->getSubjectStatistics($rankings, $subject->id);
         }
 
         $selectedClass = $this->selectedClassId ? SchoolClass::find($this->selectedClassId) : null;

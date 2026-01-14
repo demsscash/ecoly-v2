@@ -17,20 +17,20 @@ class Users extends Component
     use WithPagination;
 
     public ?int $editingId = null;
-    
+
     public string $first_name = '';
     public string $last_name = '';
     public string $email = '';
     public string $phone = '';
     public string $password = '';
     public string $role = 'teacher';
-    
+
     public bool $showModal = false;
     public string $search = '';
 
     protected function rules(): array
     {
-        $emailRule = $this->editingId 
+        $emailRule = $this->editingId
             ? "unique:users,email,{$this->editingId}"
             : 'unique:users,email';
 
@@ -66,7 +66,7 @@ class Users extends Component
     public function edit(int $id): void
     {
         $user = User::findOrFail($id);
-        
+
         $this->editingId = $user->id;
         $this->first_name = $user->first_name;
         $this->last_name = $user->last_name;
@@ -74,7 +74,7 @@ class Users extends Component
         $this->phone = $user->phone ?? '';
         $this->role = $user->role->value;
         $this->password = '';
-        
+
         $this->showModal = true;
     }
 
@@ -92,12 +92,12 @@ class Users extends Component
 
         if ($this->editingId) {
             $user = User::findOrFail($this->editingId);
-            
+
             // Update password only if provided
             if ($this->password) {
                 $data['password'] = Hash::make($this->password);
             }
-            
+
             $user->update($data);
             $this->dispatch('toast', message: __('User updated successfully.'), type: 'success');
         } else {
@@ -113,44 +113,45 @@ class Users extends Component
     public function toggleActive(int $id): void
     {
         $user = User::findOrFail($id);
-        
+
         // Prevent deactivating self
         if ($user->id === auth()->id()) {
             $this->dispatch('toast', message: __('You cannot deactivate your own account.'), type: 'error');
             return;
         }
-        
+
         $user->update(['is_active' => !$user->is_active]);
-        
-        $message = $user->is_active 
-            ? __('User activated successfully.') 
+
+        $message = $user->is_active
+            ? __('User activated successfully.')
             : __('User deactivated successfully.');
-            
+
         $this->dispatch('toast', message: $message, type: 'success');
     }
 
+    /**
+     * Reset user password securely with email notification.
+     */
     public function resetPassword(int $id): void
     {
         $user = User::findOrFail($id);
-        $user->update([
-            'password' => Hash::make('password'),
-            'failed_login_attempts' => 0,
-            'locked_until' => null,
-        ]);
-        
-        $this->dispatch('toast', message: __('Password reset to "password".'), type: 'success');
+
+        // Generate secure password and send email to user
+        $user->resetPasswordSecurely();
+
+        $this->dispatch('toast', message: __('Un nouveau mot de passe sécurisé a été envoyé à l\'utilisateur par email.'), type: 'success');
     }
 
     public function delete(int $id): void
     {
         $user = User::findOrFail($id);
-        
+
         // Prevent deleting self
         if ($user->id === auth()->id()) {
             $this->dispatch('toast', message: __('You cannot delete your own account.'), type: 'error');
             return;
         }
-        
+
         $user->delete();
         $this->dispatch('toast', message: __('User deleted successfully.'), type: 'success');
     }

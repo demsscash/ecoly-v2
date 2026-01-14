@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Enums\UserRole;
+use App\Notifications\PasswordResetNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
@@ -78,7 +80,7 @@ class User extends Authenticatable
     public function hasRole(string|array $roles): bool
     {
         $roles = is_array($roles) ? $roles : [$roles];
-        
+
         return in_array($this->role->value, $roles);
     }
 
@@ -140,5 +142,59 @@ class User extends Authenticatable
             'login_attempts' => 0,
             'locked_until' => null,
         ]);
+    }
+
+    /**
+     * Generate a secure random password.
+     * Returns both plain text (for sending to user) and hashed (for storage).
+     */
+    public static function generateSecurePassword(int $length = 12): array
+    {
+        $uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $lowercase = 'abcdefghijklmnopqrstuvwxyz';
+        $digits = '0123456789';
+        $special = '!@#$%^&*';
+
+        $all = $uppercase . $lowercase . $digits . $special;
+
+        // Ensure at least one character from each category
+        $password = '';
+        $password .= $uppercase[random_int(0, strlen($uppercase) - 1)];
+        $password .= $lowercase[random_int(0, strlen($lowercase) - 1)];
+        $password .= $digits[random_int(0, strlen($digits) - 1)];
+        $password .= $special[random_int(0, strlen($special) - 1)];
+
+        // Fill the rest randomly
+        for ($i = 4; $i < $length; $i++) {
+            $password .= $all[random_int(0, strlen($all) - 1)];
+        }
+
+        // Shuffle the password
+        $password = str_shuffle($password);
+
+        return [
+            'plain' => $password,
+            'hashed' => bcrypt($password),
+        ];
+    }
+
+    /**
+     * Reset password and send notification to user.
+     * Returns the plain text password (for admin display if needed).
+     */
+    public function resetPasswordSecurely(): string
+    {
+        $passwordData = self::generateSecurePassword();
+
+        $this->update([
+            'password' => $passwordData['hashed'],
+            'login_attempts' => 0,
+            'locked_until' => null,
+        ]);
+
+        // Send notification to user
+        $this->notify(new PasswordResetNotification($passwordData['plain']));
+
+        return $passwordData['plain'];
     }
 }

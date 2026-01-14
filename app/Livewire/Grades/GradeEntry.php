@@ -9,6 +9,7 @@ use App\Models\SchoolYear;
 use App\Models\Student;
 use App\Models\Subject;
 use App\Models\Trimester;
+use App\Services\GradeCalculationService;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -20,10 +21,17 @@ class GradeEntry extends Component
     public ?int $selectedClassId = null;
     public ?int $selectedSubjectId = null;
     public ?int $selectedTrimesterId = null;
-    
+
     public array $grades = [];
     public bool $isFinalized = false;
     public ?int $subjectGradeBase = null;
+
+    protected GradeCalculationService $gradeCalc;
+
+    public function boot(GradeCalculationService $gradeCalc): void
+    {
+        $this->gradeCalc = $gradeCalc;
+    }
 
     public function updatedSelectedClassId(): void
     {
@@ -61,10 +69,11 @@ class GradeEntry extends Component
         }
 
         $class = SchoolClass::find($this->selectedClassId);
-        $pivot = $class?->subjects()->where('subjects.id', $this->selectedSubjectId)->first()?->pivot;
-        
-        // Use pivot grade_base if exists, otherwise class grade_base, default 20
-        $this->subjectGradeBase = $pivot?->grade_base ?? $class?->grade_base ?? 20;
+        $subject = Subject::find($this->selectedSubjectId);
+
+        if ($class && $subject) {
+            $this->subjectGradeBase = $this->gradeCalc->getSubjectGradeBase($subject, $this->selectedClassId, $class);
+        }
     }
 
     protected function loadGrades(): void
@@ -96,27 +105,6 @@ class GradeEntry extends Component
                 'appreciation' => $grade?->appreciation ?? '',
             ];
         }
-    }
-
-    /**
-     * Generate automatic appreciation based on grade and grade base
-     */
-    protected function getAutoAppreciation(?float $average, int $gradeBase = 20): string
-    {
-        if ($average === null) return '';
-
-        // Normalize to 20 scale for threshold comparison
-        $normalized = ($average / $gradeBase) * 20;
-
-        $config = GradingConfig::instance();
-
-        if ($normalized >= $config->excellent_threshold) return 'Excellent';
-        if ($normalized >= $config->very_good_threshold) return 'Très Bien';
-        if ($normalized >= $config->good_threshold) return 'Bien';
-        if ($normalized >= $config->fairly_good_threshold) return 'Assez Bien';
-        if ($normalized >= $config->pass_threshold) return 'Passable';
-        
-        return 'Insuffisant';
     }
 
     /**
@@ -154,12 +142,12 @@ class GradeEntry extends Component
         }
 
         $this->grades[$studentId]['average'] = $average !== null ? round($average, 2) : null;
-        
+
         // Always update appreciation dynamically
-        $this->grades[$studentId]['appreciation'] = $this->getAutoAppreciation(
+        $this->grades[$studentId]['appreciation'] = $this->gradeCalc->getAppreciationWithGradeBase(
             $this->grades[$studentId]['average'],
             $gradeBase
-        );
+        ) ?? '';
     }
 
     public function save(): void
@@ -212,7 +200,7 @@ class GradeEntry extends Component
                     'control_grade' => $controlGrade,
                     'exam_grade' => $examGrade,
                     'average' => $data['average'],
-                    'appreciation' => $data['appreciation'] ?: $this->getAutoAppreciation($data['average'], $gradeBase),
+                    'appreciation' => $data['appreciation'] ?: $this->gradeCalc->getAppreciationWithGradeBase($data['average'], $gradeBase) ?? '',
                     'entered_by' => auth()->id(),
                     'entered_at' => now(),
                 ]
@@ -262,7 +250,7 @@ class GradeEntry extends Component
             }
 
             $subjects = $subjectsQuery->orderBy('name_fr')->get();
-            
+
             // Attach grade_base from pivot
             $class = SchoolClass::find($this->selectedClassId);
             foreach ($subjects as $subject) {

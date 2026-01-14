@@ -46,6 +46,16 @@ class ClassSubject extends Model
         return $this->belongsTo(User::class, 'teacher_id');
     }
 
+    /**
+     * Get grades for this class-subject assignment
+     * Note: Grade uses class_id and subject_id separately, not class_subject_id
+     */
+    public function grades()
+    {
+        return Grade::where('class_id', $this->class_id)
+            ->where('subject_id', $this->subject_id);
+    }
+
     // ========== NEW HELPER METHODS (NO REGRESSION) ==========
 
     /**
