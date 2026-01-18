@@ -312,11 +312,11 @@ class GradeCalculationService
         }
 
         // Fallback thresholds if config is not set
-        $excellent = $this->config->excellent_threshold ?? 16;
-        $veryGood = $this->config->very_good_threshold ?? 14;
-        $good = $this->config->good_threshold ?? 12;
-        $fairlyGood = $this->config->fairly_good_threshold ?? 10;
-        $pass = $this->config->pass_threshold ?? 10;
+        $excellent = $this->config?->mention_excellent ?? 16;
+        $veryGood = $this->config?->mention_very_good ?? 14;
+        $good = $this->config?->mention_good ?? 12;
+        $fairlyGood = $this->config?->mention_fairly_good ?? 10;
+        $pass = $this->config?->passing_grade ?? 10;
 
         if ($average >= $excellent) return 'Excellent';
         if ($average >= $veryGood) return 'Très Bien';
@@ -366,7 +366,7 @@ class GradeCalculationService
             ];
         }
 
-        $passThreshold = $this->config->pass_threshold ?? 10;
+        $passThreshold = $this->config?->passing_grade ?? 10;
         $passed = count(array_filter($averages, fn($v) => $v >= $passThreshold));
         $failed = count($averages) - $passed;
 
@@ -378,7 +378,7 @@ class GradeCalculationService
             'average' => round(array_sum($averages) / count($averages), 2),
             'passed' => $passed,
             'failed' => $failed,
-            'pass_rate' => round(($passed / count($averages)) * 100, 1),
+            'pass_rate' => count($averages) > 0 ? round(($passed / count($averages)) * 100, 1) : 0,
         ];
     }
 

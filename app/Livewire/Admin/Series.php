@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Serie;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
@@ -41,16 +42,13 @@ class Series extends Component
 
     public function save(): void
     {
-        // Fix: Ensure null instead of empty string for unique validation
-        $ignoreId = $this->editingSerieId ?: null;
-        
         $this->validate([
             'name' => 'required|string|max:255',
             'code' => [
                 'required',
                 'string',
                 'max:10',
-                'unique:series,code,' . ($ignoreId ?? 'NULL')
+                Rule::unique('series', 'code')->ignore($this->editingSerieId),
             ],
             'description' => 'nullable|string|max:1000',
         ]);

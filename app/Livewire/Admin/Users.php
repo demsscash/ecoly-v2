@@ -87,7 +87,6 @@ class Users extends Component
             'last_name' => $this->last_name,
             'email' => $this->email,
             'phone' => $this->phone ?: null,
-            'role' => UserRole::from($this->role),
         ];
 
         if ($this->editingId) {
@@ -99,10 +98,21 @@ class Users extends Component
             }
 
             $user->update($data);
+
+            // Assign sensitive field explicitly
+            $user->role = UserRole::from($this->role);
+            $user->save();
+
             $this->dispatch('toast', message: __('User updated successfully.'), type: 'success');
         } else {
             $data['password'] = Hash::make($this->password);
-            User::create($data);
+            $user = User::create($data);
+
+            // Assign sensitive fields explicitly to prevent mass assignment
+            $user->role = UserRole::from($this->role);
+            $user->is_active = true;
+            $user->save();
+
             $this->dispatch('toast', message: __('User created successfully.'), type: 'success');
         }
 

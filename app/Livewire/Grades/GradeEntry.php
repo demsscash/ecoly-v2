@@ -10,6 +10,7 @@ use App\Models\Student;
 use App\Models\Subject;
 use App\Models\Trimester;
 use App\Services\GradeCalculationService;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -27,6 +28,19 @@ class GradeEntry extends Component
     public ?int $subjectGradeBase = null;
 
     protected GradeCalculationService $gradeCalc;
+
+    /**
+     * Validation rules for grade inputs
+     */
+    protected function rules(): array
+    {
+        $gradeBase = $this->subjectGradeBase ?? 20;
+
+        return [
+            'grades.*.control_grade' => 'nullable|numeric|min:0|max:' . $gradeBase,
+            'grades.*.exam_grade' => 'nullable|numeric|min:0|max:' . $gradeBase,
+        ];
+    }
 
     public function boot(GradeCalculationService $gradeCalc): void
     {
@@ -124,6 +138,18 @@ class GradeEntry extends Component
             return;
         }
 
+        // Validate numeric inputs before casting
+        if ($control !== '' && !is_numeric($control)) {
+            $this->grades[$studentId]['average'] = null;
+            $this->grades[$studentId]['appreciation'] = '';
+            return;
+        }
+        if ($exam !== '' && !is_numeric($exam)) {
+            $this->grades[$studentId]['average'] = null;
+            $this->grades[$studentId]['appreciation'] = '';
+            return;
+        }
+
         $config = GradingConfig::instance();
         $controlWeight = $config->control_weight / 100;
         $examWeight = $config->exam_weight / 100;
@@ -177,35 +203,37 @@ class GradeEntry extends Component
             }
         }
 
-        foreach ($this->grades as $studentId => $data) {
-            $controlGrade = $data['control_grade'] !== '' ? (float) $data['control_grade'] : null;
-            $examGrade = $data['exam_grade'] !== '' ? (float) $data['exam_grade'] : null;
+        DB::transaction(function () use ($gradeBase) {
+            foreach ($this->grades as $studentId => $data) {
+                $controlGrade = $data['control_grade'] !== '' ? (float) $data['control_grade'] : null;
+                $examGrade = $data['exam_grade'] !== '' ? (float) $data['exam_grade'] : null;
 
-            if ($controlGrade === null && $examGrade === null) {
-                Grade::where('student_id', $studentId)
-                    ->where('subject_id', $this->selectedSubjectId)
-                    ->where('trimester_id', $this->selectedTrimesterId)
-                    ->delete();
-                continue;
+                if ($controlGrade === null && $examGrade === null) {
+                    Grade::where('student_id', $studentId)
+                        ->where('subject_id', $this->selectedSubjectId)
+                        ->where('trimester_id', $this->selectedTrimesterId)
+                        ->delete();
+                    continue;
+                }
+
+                Grade::updateOrCreate(
+                    [
+                        'student_id' => $studentId,
+                        'subject_id' => $this->selectedSubjectId,
+                        'trimester_id' => $this->selectedTrimesterId,
+                    ],
+                    [
+                        'class_id' => $this->selectedClassId,
+                        'control_grade' => $controlGrade,
+                        'exam_grade' => $examGrade,
+                        'average' => $data['average'],
+                        'appreciation' => $data['appreciation'] ?: $this->gradeCalc->getAppreciationWithGradeBase($data['average'], $gradeBase) ?? '',
+                        'entered_by' => auth()->id(),
+                        'entered_at' => now(),
+                    ]
+                );
             }
-
-            Grade::updateOrCreate(
-                [
-                    'student_id' => $studentId,
-                    'subject_id' => $this->selectedSubjectId,
-                    'trimester_id' => $this->selectedTrimesterId,
-                ],
-                [
-                    'class_id' => $this->selectedClassId,
-                    'control_grade' => $controlGrade,
-                    'exam_grade' => $examGrade,
-                    'average' => $data['average'],
-                    'appreciation' => $data['appreciation'] ?: $this->gradeCalc->getAppreciationWithGradeBase($data['average'], $gradeBase) ?? '',
-                    'entered_by' => auth()->id(),
-                    'entered_at' => now(),
-                ]
-            );
-        }
+        });
 
         $this->dispatch('toast', message: __('Grades saved successfully.'), type: 'success');
     }

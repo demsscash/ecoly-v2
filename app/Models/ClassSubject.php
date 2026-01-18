@@ -4,6 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+
+use App\Models\Grade;
 
 class ClassSubject extends Model
 {
@@ -47,13 +51,37 @@ class ClassSubject extends Model
     }
 
     /**
-     * Get grades for this class-subject assignment
+     * Get grades query for this class-subject assignment
      * Note: Grade uses class_id and subject_id separately, not class_subject_id
+     *
+     * @return Builder
      */
-    public function grades()
+    public function gradesQuery(): Builder
     {
         return Grade::where('class_id', $this->class_id)
             ->where('subject_id', $this->subject_id);
+    }
+
+    /**
+     * Get grades collection for this class-subject assignment
+     *
+     * @return Collection
+     */
+    public function getGrades(): Collection
+    {
+        return $this->gradesQuery()->get();
+    }
+
+    /**
+     * Get grades for this class-subject assignment (legacy method)
+     * Note: Deprecated in favor of gradesQuery() for clarity
+     *
+     * @return Builder
+     * @deprecated Use gradesQuery() instead for clarity, or getGrades() for a Collection
+     */
+    public function grades(): Builder
+    {
+        return $this->gradesQuery();
     }
 
     // ========== NEW HELPER METHODS (NO REGRESSION) ==========

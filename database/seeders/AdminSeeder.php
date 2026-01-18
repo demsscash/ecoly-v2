@@ -14,14 +14,17 @@ class AdminSeeder extends Seeder
      */
     public function run(): void
     {
-        User::create([
+        $user = User::create([
             'first_name' => 'Admin',
             'last_name' => 'Ecoly',
             'email' => 'admin@ecoly.mr',
             'password' => Hash::make('password'),
-            'role' => UserRole::Admin,
             'phone' => '+222 00 00 00 00',
-            'is_active' => true,
         ]);
+
+        // Assign sensitive fields explicitly to prevent mass assignment
+        $user->role = UserRole::Admin;
+        $user->is_active = true;
+        $user->save();
     }
 }

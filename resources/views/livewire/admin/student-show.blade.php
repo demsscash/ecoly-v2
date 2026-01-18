@@ -246,7 +246,7 @@
                                         <td class="text-center font-mono">
                                             {{ $grade?->exam_grade !== null ? number_format($grade->exam_grade, 2) : '-' }}
                                         </td>
-                                        <td class="text-center font-mono font-bold {{ ($grade?->average ?? 0) >= 10 ? 'text-success' : 'text-error' }}">
+                                        <td class="text-center font-mono font-bold @if($grade?->average !== null) {{ $grade->average >= 10 ? 'text-success' : 'text-error' }} @else text-base-content/50 @endif">
                                             {{ $grade?->average !== null ? number_format($grade->average, 2) : '-' }}
                                         </td>
                                         <td class="text-sm">{{ $grade?->appreciation ?? '-' }}</td>

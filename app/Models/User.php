@@ -19,11 +19,15 @@ class User extends Authenticatable
         'email',
         'phone',
         'password',
-        'role',
-        'is_active',
         'login_attempts',
         'locked_until',
     ];
+
+    /**
+     * Attributes that are not mass assignable.
+     * Sensitive fields like role and is_active must be assigned explicitly.
+     */
+    protected $guarded = ['id', 'role', 'is_active'];
 
     protected $hidden = [
         'password',

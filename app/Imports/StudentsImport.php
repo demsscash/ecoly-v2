@@ -8,6 +8,7 @@ use App\Models\SchoolYear;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class StudentsImport implements ToCollection, WithHeadingRow
@@ -99,7 +100,15 @@ class StudentsImport implements ToCollection, WithHeadingRow
 
                 $this->imported++;
             } catch (\Exception $e) {
-                $this->errors[] = "Ligne {$rowNum}: " . $e->getMessage();
+                // Log detailed error for debugging (not exposed to user)
+                Log::error("Import student error at row {$rowNum}", [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                    'row_data' => $row->toArray(),
+                ]);
+
+                // Show generic error message to user (no sensitive info leakage)
+                $this->errors[] = "Ligne {$rowNum}: Erreur lors de l'import de cet élève. Vérifiez les données.";
                 $this->skipped++;
             }
         }
