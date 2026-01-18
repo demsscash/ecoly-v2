@@ -600,5 +600,10 @@
     "If you were not the origin of this change, contact administration immediately.": "Si vous n'étiez pas à l'origine de ce changement, contactez immédiatement l'administration.",
     "Please create a school year first to manage timetables.": "Veuillez d'abord créer une année scolaire pour gérer les emplois du temps.",
     "Select a school year": "Sélectionner une année scolaire",
-    "All School Years": "Toutes les années scolaires"
+    "All School Years": "Toutes les années scolaires",
+    "School Management System": "Système de Gestion Scolaire",
+    "boys": "garçons",
+    "girls": "filles",
+    "Expand": "Développer",
+    "Collapse": "Réduire"
 }

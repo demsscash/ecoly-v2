@@ -600,5 +600,10 @@
     "If you were not the origin of this change, contact administration immediately.": "إذا لم تكن أنت من قام بهذا التغيير، يرجى الاتصال بالمسؤول فوراً.",
     "Please create a school year first to manage timetables.": "يرجى إنشاء سنة دراسية أولاً لإدارة الجداول الدراسية.",
     "Select a school year": "اختر سنة دراسية",
-    "All School Years": "جميع السنوات الدراسية"
+    "All School Years": "جميع السنوات الدراسية",
+    "School Management System": "نظام إدارة المدرسة",
+    "boys": "أولاد",
+    "girls": "بنات",
+    "Expand": "توسيع",
+    "Collapse": "طي"
 }
