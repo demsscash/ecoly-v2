@@ -31,14 +31,14 @@ class PasswordResetNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject(__('Votre nouveau mot de passe - Ecoly'))
-            ->greeting(__('Bonjour :name,', ['name' => $notifiable->first_name]))
-            ->line(__('Votre mot de passe a été réinitialisé par un administrateur.'))
-            ->line(__('Votre nouveau mot de passe est : **:password**', ['password' => $this->password]))
-            ->line(__('Nous vous recommandons de le changer après votre première connexion.'))
+            ->subject(__('Your new password - Ecoly'))
+            ->greeting(__('Hello :name,', ['name' => $notifiable->first_name]))
+            ->line(__('Your password has been reset by an administrator.'))
+            ->line(__('Your new password is: **:password**', ['password' => $this->password]))
+            ->line(__('We recommend you change it after your first login.'))
             ->action(__('Se connecter'), url('/login'))
-            ->line(__('Si vous n\'avez pas demandé cette réinitialisation, contactez l\'administration.'))
-            ->salutation(__('Cordialement, l\'équipe Ecoly'));
+            ->line(__('If you did not request this reset, please contact administration.'))
+            ->salutation(__('Regards,') . ' ' . __('the Ecoly team'));
     }
 
     /**
@@ -48,7 +48,7 @@ class PasswordResetNotification extends Notification
     {
         return [
             'type' => 'password_reset',
-            'message' => __('Votre mot de passe a été réinitialisé.'),
+            'message' => __('Your password has been reset.'),
         ];
     }
 }

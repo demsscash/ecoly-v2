@@ -24,12 +24,12 @@ class PasswordChangedNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject(__('Confirmation de changement de mot de passe - Ecoly'))
-            ->greeting(__('Bonjour :name,', ['name' => $notifiable->first_name]))
-            ->line(__('Votre mot de passe a été changé avec succès.'))
-            ->line(__('Si vous n\'êtes pas à l\'origine de ce changement, contactez immédiatement l\'administration.'))
+            ->subject(__('Password change confirmation - Ecoly'))
+            ->greeting(__('Hello :name,', ['name' => $notifiable->first_name]))
+            ->line(__('Your password has been changed successfully.'))
+            ->line(__('If you were not the origin of this change, contact administration immediately.'))
             ->action(__('Se connecter'), url('/login'))
-            ->salutation(__('Cordialement, l\'équipe Ecoly'));
+            ->salutation(__('Regards,') . ' ' . __('the Ecoly team'));
     }
 
     /**
@@ -39,7 +39,7 @@ class PasswordChangedNotification extends Notification
     {
         return [
             'type' => 'password_changed',
-            'message' => __('Votre mot de passe a été changé avec succès.'),
+            'message' => __('Your password has been changed successfully.'),
         ];
     }
 }

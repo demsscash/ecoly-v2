@@ -19,7 +19,7 @@ class Timetables extends Component
 {
     use WithPagination;
 
-    public int $school_year_id;
+    public ?int $school_year_id = null;
     public string $filterClass = '';
     public string $filterDay = '';
     
@@ -65,6 +65,11 @@ class Timetables extends Component
 
     public function save(): void
     {
+        if (!$this->school_year_id) {
+            $this->dispatch('toast', message: __('No active school year.'), type: 'error');
+            return;
+        }
+
         $this->validate([
             'class_id' => 'required|exists:classes,id',
             'subject_id' => 'required|exists:subjects,id',
@@ -127,6 +132,24 @@ class Timetables extends Component
 
     public function render()
     {
+        $schoolYears = SchoolYear::orderBy('created_at', 'desc')->get();
+
+        if (!$this->school_year_id && $schoolYears->isNotEmpty()) {
+            $this->school_year_id = $schoolYears->first()->id;
+        }
+
+        if (!$this->school_year_id) {
+            return view('livewire.admin.timetables', [
+                'timetables' => collect(),
+                'classes' => collect(),
+                'subjects' => collect(),
+                'teachers' => collect(),
+                'timeSlots' => collect(),
+                'days' => Timetable::days(),
+                'schoolYears' => $schoolYears,
+            ]);
+        }
+
         $query = Timetable::with(['class', 'subject', 'teacher', 'timeSlot'])
             ->where('school_year_id', $this->school_year_id);
 
@@ -151,6 +174,7 @@ class Timetables extends Component
                 ->orderBy('first_name')->get(),
             'timeSlots' => TimeSlot::where('is_active', true)->orderBy('order')->get(),
             'days' => Timetable::days(),
+            'schoolYears' => $schoolYears,
         ]);
     }
 }

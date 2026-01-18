@@ -139,7 +139,7 @@ class Users extends Component
         // Generate secure password and send email to user
         $user->resetPasswordSecurely();
 
-        $this->dispatch('toast', message: __('Un nouveau mot de passe sécurisé a été envoyé à l\'utilisateur par email.'), type: 'success');
+        $this->dispatch('toast', message: __('A secure password has been sent to the user by email.'), type: 'success');
     }
 
     public function delete(int $id): void

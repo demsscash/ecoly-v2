@@ -168,7 +168,7 @@ class Dashboard extends Component
     /**
      * Get recent students
      */
-    private function getRecentStudents(?SchoolYear $schoolYear): \Illuminate\Database\Eloquent\Collection
+    private function getRecentStudents(?SchoolYear $schoolYear): \Illuminate\Support\Collection
     {
         if (!$schoolYear) {
             return collect();
@@ -184,7 +184,7 @@ class Dashboard extends Component
     /**
      * Get students with unpaid balances
      */
-    private function getUnpaidStudents(?SchoolYear $schoolYear): \Illuminate\Database\Eloquent\Collection
+    private function getUnpaidStudents(?SchoolYear $schoolYear): \Illuminate\Support\Collection
     {
         if (!$schoolYear) {
             return collect();
