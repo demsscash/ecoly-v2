@@ -45,7 +45,7 @@ class Classes extends Component
 
         $this->editingClassId = $class->id;
         $this->level = $class->level;
-        $this->class_number = $class->section;
+        $this->class_number = $class->section ?? '';
         $this->level_type = $class->level_type;
         $this->serie_id = $class->serie_id;
         $this->school_year_id = $class->school_year_id;
@@ -191,7 +191,7 @@ class Classes extends Component
 
     public function render()
     {
-        $classes = SchoolClass::with(['schoolYear', 'series'])
+        $classes = SchoolClass::with(['schoolYear', 'serie'])
             ->withCount('students')
             ->where('school_year_id', $this->school_year_id)
             ->orderBy('level')

@@ -4,7 +4,8 @@
       "Bash(php artisan tinker --execute=\"echo \\(new \\\\App\\\\Models\\\\Grade\\)->getConnection\\(\\)->getSchemaBuilder\\(\\)->getColumnListing\\(''grades''\\) |> json_encode;\")",
       "Bash(mysql:*)",
       "Bash(sqlite3:*)",
-      "Bash(/usr/local/bin/php artisan route:list:*)"
+      "Bash(/usr/local/bin/php artisan route:list:*)",
+      "Bash(composer require:*)"
     ]
   }
 }

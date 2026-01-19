@@ -69,8 +69,8 @@
                                         </div>
                                         <div>
                                             <h4 class="font-bold">{{ $class->name }}</h4>
-                                            @if ($class->series)
-                                                <p class="text-xs text-base-content/60">{{ $class->series->name_fr }}</p>
+                                            @if ($class->serie)
+                                                <p class="text-xs text-base-content/60">{{ $class->serie->name }}</p>
                                             @endif
                                         </div>
                                         @if ($class->main_teacher_id === $selectedTeacherId)

@@ -117,8 +117,8 @@ class TeacherAssignments extends Component
             ->orderByRaw("CONCAT(first_name, ' ', last_name)")
             ->get();
 
-        $classes = $this->selectedYearId 
-            ? SchoolClass::with(['subjects', 'mainTeacher'])
+        $classes = $this->selectedYearId
+            ? SchoolClass::with(['subjects', 'mainTeacher', 'serie'])
                 ->where('school_year_id', $this->selectedYearId)
                 ->where('is_active', true)
                 ->orderBy('level')

@@ -29,34 +29,27 @@ class BulletinService
         $grades = $this->gradeCalc->getStudentGradesBySubject($student, $trimester->id);
 
         $subjectsData = [];
-        $totalPoints = 0;
-        $totalBase = 0;
 
         foreach ($subjects as $subject) {
             $grade = $grades->get($subject->id);
             $gradeBase = $this->gradeCalc->getSubjectGradeBase($subject, $student->class_id, $student->class);
+            $coefficient = $this->gradeCalc->getSubjectCoefficient($subject, $student->class_id);
 
             $subjectsData[] = [
                 'name' => $subject->name_fr,
                 'name_ar' => $subject->name_ar,
                 'code' => $subject->code,
                 'grade_base' => $gradeBase,
+                'coefficient' => $coefficient,
                 'control' => $grade?->control_grade,
                 'exam' => $grade?->exam_grade,
                 'average' => $grade?->average,
                 'appreciation' => $grade?->appreciation,
             ];
-
-            if ($grade?->average !== null) {
-                // Normalize to 20 for total calculation
-                $normalized = ($grade->average / $gradeBase) * 20;
-                $totalPoints += $normalized;
-                $totalBase += 20;
-            }
         }
 
-        // Calculate trimester average (normalized to 20)
-        $trimesterAverage = $totalBase > 0 ? round(($totalPoints / $totalBase) * 20, 2) : null;
+        // Use GradeCalculationService for proper average calculation (with coefficients for college/lycee)
+        $trimesterAverage = $this->gradeCalc->calculateStudentAverage($student, $trimester->id);
 
         // Get rank
         $rankInfo = $this->gradeCalc->getStudentRank($student, $trimester);

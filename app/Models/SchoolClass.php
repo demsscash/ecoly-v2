@@ -24,6 +24,8 @@ class SchoolClass extends Model
         'registration_fee',
         'main_teacher_id',
         'is_active',
+        'level_type',
+        'serie_id',
     ];
 
     protected $casts = [
@@ -86,10 +88,16 @@ class SchoolClass extends Model
     }
 
 
-    // Ajoute cette méthode
+    // Get the serie (lycee only)
+    public function serie(): BelongsTo
+    {
+        return $this->belongsTo(Serie::class, 'serie_id');
+    }
+
+    // Alias for backward compatibility
     public function series(): BelongsTo
     {
-        return $this->belongsTo(Serie::class, 'series_id');
+        return $this->serie();
     }
 
     public function subjects(): BelongsToMany
