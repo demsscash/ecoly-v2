@@ -5,13 +5,15 @@ namespace App\Models;
 use App\Enums\UserRole;
 use App\Notifications\PasswordResetNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
         'first_name',
@@ -79,6 +81,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is parent.
+     */
+    public function isParent(): bool
+    {
+        return $this->role === UserRole::Parent;
+    }
+
+    /**
      * Check if user has any of the given roles.
      */
     public function hasRole(string|array $roles): bool
@@ -86,6 +96,14 @@ class User extends Authenticatable
         $roles = is_array($roles) ? $roles : [$roles];
 
         return in_array($this->role->value, $roles);
+    }
+
+    /**
+     * Get children (for parent role).
+     */
+    public function children(): HasMany
+    {
+        return $this->hasMany(Student::class, 'parent_id');
     }
 
     /**

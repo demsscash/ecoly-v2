@@ -11,6 +11,7 @@ class Student extends Model
     protected $fillable = [
         'matricule',
         'nni',
+        'parent_id',
         'first_name',
         'last_name',
         'first_name_ar',
@@ -114,6 +115,11 @@ class Student extends Model
     /**
      * Relationships
      */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'parent_id');
+    }
+
     public function class(): BelongsTo
     {
         return $this->belongsTo(SchoolClass::class, 'class_id');

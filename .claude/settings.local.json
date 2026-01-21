@@ -5,7 +5,9 @@
       "Bash(mysql:*)",
       "Bash(sqlite3:*)",
       "Bash(/usr/local/bin/php artisan route:list:*)",
-      "Bash(composer require:*)"
+      "Bash(composer require:*)",
+      "Bash(node:*)",
+      "Bash(npm --version:*)"
     ]
   }
 }

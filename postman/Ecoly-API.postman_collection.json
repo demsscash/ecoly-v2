@@ -1,0 +1,902 @@
+{
+	"info": {
+		"_postman_id": "ecoly-api-collection",
+		"name": "Ecoly API",
+		"description": "API REST pour l'application Ecoly - Système de gestion scolaire pour la Mauritanie",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{auth_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000/api",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Login",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@ecoly.mr\",\n    \"password\": \"password\",\n    \"device_name\": \"Postman\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "Connectez-vous avec votre email et mot de passe. Copiez le token retourné et collez-le dans la variable `auth_token`."
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"admin@ecoly.mr\",\n    \"password\": \"password\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/auth/login",
+									"host": ["{{base_url}}"],
+									"path": ["auth", "login"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"message\": \"Connexion réussie.\",\n    \"user\": {\n        \"id\": 1,\n        \"first_name\": \"Admin\",\n        \"last_name\": \"User\",\n        \"email\": \"admin@ecoly.mr\",\n        \"phone\": null,\n        \"role\": \"admin\"\n    },\n    \"token\": \"1|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Current User",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/me",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "me"]
+						},
+						"description": "Récupère les informations de l'utilisateur connecté."
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/logout",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "logout"]
+						},
+						"description": "Déconnecte l'appareil actuel."
+					},
+					"response": []
+				},
+				{
+					"name": "Logout All Devices",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/logout-all",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "logout-all"]
+						},
+						"description": "Déconnecte tous les appareils de l'utilisateur."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints d'authentification"
+		},
+		{
+			"name": "Admin",
+			"item": [
+				{
+					"name": "Dashboard",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/dashboard?year_id=1",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "dashboard"],
+							"query": [
+								{
+									"key": "year_id",
+									"value": "1",
+									"description": "ID de l'année scolaire (optionnel)"
+								}
+							]
+						},
+						"description": "Statistiques du dashboard admin."
+					},
+					"response": []
+				},
+				{
+					"name": "List Students",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/students?class_id=1&school_year_id=1&status=active&search=Ahmed&per_page=20",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "students"],
+							"query": [
+								{
+									"key": "class_id",
+									"value": "1",
+									"description": "Filtrer par classe",
+									"disabled": true
+								},
+								{
+									"key": "school_year_id",
+									"value": "1",
+									"description": "Filtrer par année scolaire",
+									"disabled": true
+								},
+								{
+									"key": "status",
+									"value": "active",
+									"description": "Filtrer par statut (active, inactive, transferred, graduated)",
+									"disabled": true
+								},
+								{
+									"key": "search",
+									"value": "Ahmed",
+									"description": "Rechercher par nom ou matricule",
+									"disabled": true
+								},
+								{
+									"key": "per_page",
+									"value": "20",
+									"description": "Nombre par page"
+								}
+							]
+						},
+						"description": "Liste tous les élèves avec pagination et filtres."
+					},
+					"response": []
+				},
+				{
+					"name": "Show Student",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/students/:id",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "students", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "ID de l'élève"
+								}
+							]
+						},
+						"description": "Récupère les détails d'un élève spécifique."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Student",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"first_name\": \"Ahmed\",\n    \"last_name\": \"Sidi\",\n    \"first_name_ar\": \"أحمد\",\n    \"last_name_ar\": \"السيدي\",\n    \"birth_date\": \"2010-05-15\",\n    \"birth_place\": \"Nouakchott\",\n    \"gender\": \"male\",\n    \"nationality\": \"Mauritanienne\",\n    \"guardian_name\": \"Mohamed Sidi\",\n    \"guardian_phone\": \"22222222\",\n    \"guardian_phone_2\": \"33333333\",\n    \"guardian_email\": \"parent@example.com\",\n    \"class_id\": 1,\n    \"school_year_id\": 1,\n    \"enrollment_date\": \"2024-09-01\",\n    \"status\": \"active\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/students",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "students"]
+						},
+						"description": "Crée un nouvel élève."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Student",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"first_name\": \"Ahmed\",\n    \"last_name\": \"Sidi\",\n    \"class_id\": 2,\n    \"status\": \"active\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/students/:id",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "students", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Met à jour un élève existant."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Student",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/students/:id",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "students", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Supprime un élève."
+					},
+					"response": []
+				},
+				{
+					"name": "List Classes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/classes?school_year_id=1&level_type=fondamental",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "classes"],
+							"query": [
+								{
+									"key": "school_year_id",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "level_type",
+									"value": "fondamental",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Liste toutes les classes actives."
+					},
+					"response": []
+				},
+				{
+					"name": "List Teachers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/teachers",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "teachers"]
+						},
+						"description": "Liste tous les professeurs actifs."
+					},
+					"response": []
+				},
+				{
+					"name": "List Parents",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/parents",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "parents"]
+						},
+						"description": "Liste tous les parents actifs avec leurs enfants."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Parent",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"first_name\": \"Fatima\",\n    \"last_name\": \"Mint\",\n    \"email\": \"fatima@example.com\",\n    \"phone\": \"44444444\",\n    \"password\": \"Password123!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/parents",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "parents"]
+						},
+						"description": "Crée un nouveau compte parent."
+					},
+					"response": []
+				},
+				{
+					"name": "List School Years",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/school-years",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "school-years"]
+						},
+						"description": "Liste toutes les années scolaires."
+					},
+					"response": []
+				},
+				{
+					"name": "List Trimesters",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/trimesters",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "trimesters"]
+						},
+						"description": "Liste tous les trimestres."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints réservés aux administrateurs (role: admin)"
+		},
+		{
+			"name": "Secretary",
+			"item": [
+				{
+					"name": "Dashboard",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/secretary/dashboard?year_id=1",
+							"host": ["{{base_url}}"],
+							"path": ["secretary", "dashboard"],
+							"query": [
+								{
+									"key": "year_id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Statistiques du dashboard secrétariat."
+					},
+					"response": []
+				},
+				{
+					"name": "List Students",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/secretary/students?per_page=20",
+							"host": ["{{base_url}}"],
+							"path": ["secretary", "students"],
+							"query": [
+								{
+									"key": "class_id",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "school_year_id",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "status",
+									"value": "active",
+									"disabled": true
+								},
+								{
+									"key": "search",
+									"value": "Ahmed",
+									"disabled": true
+								},
+								{
+									"key": "per_page",
+									"value": "20"
+								}
+							]
+						},
+						"description": "Liste tous les élèves (lecture seule)."
+					},
+					"response": []
+				},
+				{
+					"name": "Show Student",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/secretary/students/:id",
+							"host": ["{{base_url}}"],
+							"path": ["secretary", "students", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Détails d'un élève avec ses paiements."
+					},
+					"response": []
+				},
+				{
+					"name": "List Classes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/secretary/classes",
+							"host": ["{{base_url}}"],
+							"path": ["secretary", "classes"]
+						},
+						"description": "Liste toutes les classes actives."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Student Payments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/secretary/students/:id/payments",
+							"host": ["{{base_url}}"],
+							"path": ["secretary", "students", ":id", "payments"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Récupère les paiements d'un élève."
+					},
+					"response": []
+				},
+				{
+					"name": "Record Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": 50000,\n    \"amount_paid\": 25000,\n    \"payment_date\": \"2024-09-15\",\n    \"payment_method\": \"cash\",\n    \"reference\": \"REC-001\",\n    \"notes\": \"Premier versement\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/secretary/students/:id/payments",
+							"host": ["{{base_url}}"],
+							"path": ["secretary", "students", ":id", "payments"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Enregistre un nouveau paiement."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Payment",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount_paid\": 50000,\n    \"payment_date\": \"2024-10-15\",\n    \"notes\": \"Paiement complet\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/secretary/payments/:id",
+							"host": ["{{base_url}}"],
+							"path": ["secretary", "payments", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Met à jour un paiement existant."
+					},
+					"response": []
+				},
+				{
+					"name": "Search Students",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/secretary/search/students?q=Ahmed",
+							"host": ["{{base_url}}"],
+							"path": ["secretary", "search", "students"],
+							"query": [
+								{
+									"key": "q",
+									"value": "Ahmed"
+								}
+							]
+						},
+						"description": "Recherche rapide d'élèves par nom ou matricule."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints réservés aux secrétaires (role: secretary)"
+		},
+		{
+			"name": "Teacher",
+			"item": [
+				{
+					"name": "My Classes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/teacher/classes?school_year_id=1",
+							"host": ["{{base_url}}"],
+							"path": ["teacher", "classes"],
+							"query": [
+								{
+									"key": "school_year_id",
+									"value": "1",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Liste les classes du professeur avec les matières enseignées."
+					},
+					"response": []
+				},
+				{
+					"name": "Class Students with Grades",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/teacher/classes/:classId/students?trimester_id=1&subject_id=1",
+							"host": ["{{base_url}}"],
+							"path": ["teacher", "classes", ":classId", "students"],
+							"query": [
+								{
+									"key": "trimester_id",
+									"value": "1",
+									"description": "ID du trimestre (requis)"
+								},
+								{
+									"key": "subject_id",
+									"value": "1",
+									"description": "ID de la matière (requis)"
+								}
+							],
+							"variable": [
+								{
+									"key": "classId",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Liste les élèves d'une classe avec leurs notes pour une matière et un trimestre donnés."
+					},
+					"response": []
+				},
+				{
+					"name": "Store Grades",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"class_id\": 1,\n    \"subject_id\": 1,\n    \"trimester_id\": 1,\n    \"grades\": [\n        {\n            \"student_id\": 1,\n            \"control_grade\": 15,\n            \"exam_grade\": 16,\n            \"appreciation\": \"Très bon travail\"\n        },\n        {\n            \"student_id\": 2,\n            \"control_grade\": 12,\n            \"exam_grade\": 14,\n            \"appreciation\": \"Bon travail\"\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/teacher/grades",
+							"host": ["{{base_url}}"],
+							"path": ["teacher", "grades"]
+						},
+						"description": "Enregistre ou met à jour les notes des élèves pour une matière et un trimestre."
+					},
+					"response": []
+				},
+				{
+					"name": "My Subjects",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/teacher/subjects",
+							"host": ["{{base_url}}"],
+							"path": ["teacher", "subjects"]
+						},
+						"description": "Liste toutes les matières enseignées par le professeur."
+					},
+					"response": []
+				},
+				{
+					"name": "My Timetable",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/teacher/timetable?class_id=1",
+							"host": ["{{base_url}}"],
+							"path": ["teacher", "timetable"],
+							"query": [
+								{
+									"key": "class_id",
+									"value": "1",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Récupère l'emploi du temps du professeur."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints réservés aux professeurs (role: teacher)"
+		},
+		{
+			"name": "Parent",
+			"item": [
+				{
+					"name": "My Children",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/parent/children",
+							"host": ["{{base_url}}"],
+							"path": ["parent", "children"]
+						},
+						"description": "Liste tous les enfants du parent connecté."
+					},
+					"response": []
+				},
+				{
+					"name": "Child Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/parent/children/:id",
+							"host": ["{{base_url}}"],
+							"path": ["parent", "children", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Détails d'un enfant spécifique."
+					},
+					"response": []
+				},
+				{
+					"name": "Child Bulletins (All Trimesters)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/parent/children/:id/bulletins",
+							"host": ["{{base_url}}"],
+							"path": ["parent", "children", ":id", "bulletins"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Bulletins de l'enfant pour tous les trimestres (moyenne, rang, mention)."
+					},
+					"response": []
+				},
+				{
+					"name": "Child Bulletin (Specific Trimester)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/parent/children/:id/bulletins/:trimesterId",
+							"host": ["{{base_url}}"],
+							"path": ["parent", "children", ":id", "bulletins", ":trimesterId"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								},
+								{
+									"key": "trimesterId",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Bulletin complet d'un enfant pour un trimestre spécifique (notes par matière, moyenne, rang, mention)."
+					},
+					"response": []
+				},
+				{
+					"name": "Child Grades",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/parent/children/:id/grades?trimester_id=1",
+							"host": ["{{base_url}}"],
+							"path": ["parent", "children", ":id", "grades"],
+							"query": [
+								{
+									"key": "trimester_id",
+									"value": "1",
+									"description": "ID du trimestre (requis)"
+								}
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Notes par matière d'un enfant pour un trimestre."
+					},
+					"response": []
+				},
+				{
+					"name": "Child Attendance",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/parent/children/:id/attendance",
+							"host": ["{{base_url}}"],
+							"path": ["parent", "children", ":id", "attendance"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Historique des absences et retards d'un enfant."
+					},
+					"response": []
+				},
+				{
+					"name": "Child Payments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/parent/children/:id/payments",
+							"host": ["{{base_url}}"],
+							"path": ["parent", "children", ":id", "payments"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Paiements et solde d'un enfant."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints réservés aux parents (role: parent)"
+		}
+	]
+}
